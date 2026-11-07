@@ -38,6 +38,18 @@ function render(){
  $('nav').innerHTML=Object.entries(tabs).map(([k,v])=>'<button data-page="'+k+'" class="'+((page===k||page==='analysis'&&k==='list')?'active':'')+'">'+v+'</button>').join('');
  $('app').innerHTML=page==='analysis'?analysis():page==='list'?list():page==='rules'?rules():page==='appeals'?appeals():page==='bench'?benchPage():stats();
 }
+let localRecording;
+function callAudio(r,url){
+ if(r.channel!=='voice call')return '';
+ const direct=url&&/\.(mp3|wav|ogg|m4a|aac|webm)(?:[?#]|$)/i.test(url);
+ return '<section class="panel bench"><h2>Запись звонка</h2><p>Расшифровка организаторов · '+r.transcript.length+' реплик</p>'+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Открыть запись в плеере организаторов ↗</a></p>':'')+'<label>Выбрать аудиофайл этого звонка <input id="callFile" type="file" accept="audio/*"></label><audio id="player" controls preload="metadata" '+(direct?'src="'+esc(url)+'"':'hidden')+'></audio></section>';
+}
+document.addEventListener('change',e=>{
+ if(e.target.id!=='callFile'||!e.target.files[0])return;
+ if(localRecording)URL.revokeObjectURL(localRecording);
+ localRecording=URL.createObjectURL(e.target.files[0]);
+ const player=$('player');player.src=localRecording;player.hidden=false;
+});
 function analysis(){
  const r=record(), a=run(), messages=r.transcript;
  const transcript=messages.map((m,i)=>'<div class="message '+esc(m.speaker)+(i===focus?' selected':'')+'" id="msg-'+i+'"><div class="meta"><b>'+esc(names[m.speaker]||m.speaker)+'</b>　'+esc(stamp(m.timestamp))+'</div><div class="bubble">'+esc(m.text)+'</div></div>').join('');
@@ -45,9 +57,9 @@ function analysis(){
  const score=a?'<div class="result-head"><strong>'+num(s.total)+'</strong> / 100<p>'+esc(a.model||'Локальные правила')+' · '+(s.gross?'Есть грубая ошибка':'Без грубых ошибок')+'</p></div>'+a.criteria.map((c,i)=>'<div class="criterion"><button data-criterion="'+i+'"><span>'+esc(c.title)+'</span><b class="status">'+esc(a.results[i].value) +'　›</b></button></div>').join('')+'<details class="section-scores"><summary>Результаты разделов</summary>'+Object.entries(s.sections).map(([k,v])=>'<p>'+esc(k)+' · '+num(v)+' / 100</p>').join('')+'</details>':'<p>Запустите оценку по текущему чек-листу.</p>';
  const audioURL=/^https?:\/\//i.test(r.audio_url||'')?r.audio_url:null;
  return intro('ПРОВЕРКА ОБРАЩЕНИЯ','Анализ диалога',esc(r.title||(r.channel==='voice call'?'Звонок':'Чат'))+'　·　'+esc(r.conversation_id)+'　·　'+esc(r.language),'<button data-act="evaluate">Локальная оценка</button>'+(publicDemo ? '' : '<button data-act="model">Оценить через OpenAI</button>'))+
- (audioURL?'<audio id="player" controls preload="none" src="'+esc(audioURL)+'"></audio>':'')+'<div class="columns"><article class="panel"><div class="panel-head"><h2>Расшифровка</h2><small>'+esc(r.language)+'</small></div><div class="transcript">'+transcript+'</div></article><article class="panel"><div class="panel-head"><h2>Оценка качества</h2></div>'+score+'</article></div>';
+ callAudio(r,audioURL)+'<div class="columns"><article class="panel"><div class="panel-head"><h2>Расшифровка</h2><small>'+esc(r.language)+'</small></div><div class="transcript">'+transcript+'</div></article><article class="panel"><div class="panel-head"><h2>Оценка качества</h2></div>'+score+'</article></div>';
 }
-function jump(i){focus=i;closeIfOpen();document.querySelectorAll('.message').forEach(el=>el.classList.remove('selected'));const el=$('msg-'+i);if(el){el.classList.add('selected');el.scrollIntoView({block:'center',behavior:'smooth'})}const player=$('player'), r=record();if(player&&r.transcript[i]){const offset=(Date.parse(r.transcript[i].timestamp)-Date.parse(r.transcript[0].timestamp))/1000;if(Number.isFinite(offset))player.currentTime=Math.max(0,offset)}}
+function jump(i){focus=i;closeIfOpen();document.querySelectorAll('.message').forEach(el=>el.classList.remove('selected'));const el=$('msg-'+i);if(el){el.classList.add('selected');el.scrollIntoView({block:'center',behavior:'smooth'})}const player=$('player'), r=record();if(player&&player.readyState>=1&&r.transcript[i]){const offset=(Date.parse(r.transcript[i].timestamp)-Date.parse(r.transcript[0].timestamp))/1000;if(Number.isFinite(offset))player.currentTime=Math.max(0,offset)}}
 function closeIfOpen(){if($('modal').open)closePop()}
 function detail(i){const a=run(),c=a.criteria[i],v=a.results[i],m=record().transcript[v.evidence],s=CQA.summarize(a.results,a.criteria);
  pop('<div class="eyebrow">КРИТЕРИЙ '+(i+1)+'</div><h2>'+esc(c.title)+'</h2><p>'+esc(c.description)+'</p><b>'+esc(v.value)+'　·　Вес '+c.weight+'　·　Баллы '+num(s.points[c.id])+'</b><p>'+esc(v.reason)+'</p>'+(m?'<blockquote>'+esc(m.text)+'</blockquote><button data-msg="'+v.evidence+'">К реплике '+esc(stamp(m.timestamp))+'</button>':'')+'<hr><p>Исходная оценка　<b>'+esc(a.original[i].value)+'</b></p>'+db.appeals.filter(x=>x.id===current&&x.version===a.version&&x.i===i&&x.decision).map(x=>'<p>Решение　'+esc(x.decision)+' · '+esc(x.reason)+'</p>').join('')+'<form id="appealForm"><label>Причина апелляции<textarea required name="comment"></textarea></label><button>Оспорить оценку</button></form>');
@@ -118,6 +130,7 @@ function modelDialog() {
    }catch(err){state.textContent=err.message;button.disabled=false}
  };
 }
+
 
 
 

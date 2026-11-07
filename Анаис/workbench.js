@@ -21,8 +21,8 @@ const modelName='Qwen2.5-3B-Instruct-q4f16_1-MLC';
 function benchPage(){
   const last=db.control, rows=last?.rows||[];
   return intro('ПРОВЕРКА МЕТОДИКИ','Контрольная выборка','Загрузите неизвестные транскрипты. Исходные оценки этой проверки сохраняются отдельно от решений по апелляциям.')+
-    '<section class="panel bench"><h2>Новая проверка</h2><p>Поддерживаются JSON организаторов, массив диалогов и отдельная запись. Для контрольного этапа выберите файл с 10 разговорами.</p><div class="tools"><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить выборку</button></div><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
-    (last?'<section class="panel bench"><div class="rec-top"><h2>Протокол проверки</h2><button data-control="export">Скачать JSON</button></div><p>'+esc(last.method)+' · '+esc(new Date(last.created).toLocaleString('ru-RU'))+' · Диалогов: '+rows.length+'</p><div class="tablewrap"><table><thead><tr><th>Диалог</th><th>Язык</th><th>Балл</th><th>Грубая ошибка</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.conversation_id)+'</td><td>'+esc(r.language)+'</td><td>'+num(r.total)+'</td><td>'+(r.gross?'Да':'Нет')+'</td></tr>').join('')+'</tbody></table></div></section><section class="panel bench"><h2>Сверка с эталоном</h2><p>Загрузите JSON-массив с полями conversation_id и total (число от 0 до 100). Сопоставление идёт по ID.</p><input id="truthFile" type="file" accept=".json" aria-label="Эталонные оценки"><div id="comparison">'+(comparison||'')+'</div></section>':'');
+    '<section class="panel bench"><h2>Новая проверка</h2><p>Поддерживаются JSON организаторов, массив диалогов и отдельная запись. Для контрольного этапа выберите файл с 10 разговорами.</p><div class="tools"><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить выборку</button><button data-control="sample">Проверить 3 учебных диалога</button></div><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
+    (last?'<section class="panel bench"><div class="rec-top"><h2>Протокол проверки</h2><button data-control="export">Скачать протокол</button><button data-control="submit">Скачать results.json</button></div><p>'+esc(last.method)+' · '+esc(new Date(last.created).toLocaleString('ru-RU'))+' · Диалогов: '+rows.length+'</p><div class="tablewrap"><table><thead><tr><th>Диалог</th><th>Язык</th><th>Балл</th><th>Грубая ошибка</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.conversation_id)+'</td><td>'+esc(r.language)+'</td><td>'+num(r.total)+'</td><td>'+(r.error?esc(r.error):r.gross?'Да':'Нет')+'</td></tr>').join('')+'</tbody></table></div></section><section class="panel bench"><h2>Сверка с эталоном</h2><p>Загрузите JSON-массив с полями conversation_id и total (число от 0 до 100). Сопоставление идёт по ID.</p><input id="truthFile" type="file" accept=".json" aria-label="Эталонные оценки"><div id="comparison">'+(comparison||'')+'</div></section>':'');
 }
 function controlRecords(data){
   const records=data?.data?.records??data?.records??(Array.isArray(data)?data:[data]);
@@ -43,7 +43,7 @@ async function webAssess(record,criteria){
     const lib=await import('https://esm.run/@mlc-ai/web-llm@0.2.79');
     localEngine=await lib.CreateMLCEngine(modelName,{initProgressCallback:r=>progress(r.text)});
   }
-  const transcript=record.transcript.map((m,i)=>[i,m.speaker,m.text]);
+  const transcript=record.transcript.map((m,i)=>[i,m.timestamp,m.speaker,m.text]);
   const results=[];
   for(const c of criteria){
     progress(record.conversation_id+' · '+c.title);
@@ -58,18 +58,19 @@ async function webAssess(record,criteria){
   }
   return results;
 }
-async function runControl(){
+async function runControl(sample=false){
   if(controlBusy)return;
   const file=$('controlFile').files[0], method=$('method').value;
-  if(!file){progress('Сначала выберите JSON с транскриптами.');return}
+  if(!file&&!sample){progress('Сначала выберите JSON с транскриптами.');return}
   if(method==='cloud'&&!confirm('Передать транскрипты выбранного файла в OpenAI для оценки?'))return;
   controlBusy=true;document.querySelector('[data-control="run"]').disabled=true;
   const criteria=copy(db.criteria), rows=[], jobs=[];
   try{
-    const records=controlRecords(JSON.parse((await file.text()).replace(/^\uFEFF/,'')));
+    const records=controlRecords(sample?copy(window.demoRecords):JSON.parse((await file.text()).replace(/^\uFEFF/,'')));
     let label=method==='rules'?'Локальные правила':method==='web'?modelName:'OpenAI';
     for(const [index,r] of records.entries()){
       progress('Проверяется '+(index+1)+' из '+records.length+' · '+r.conversation_id);
+      try {
       let results;
       if(method==='rules')results=CQA.evaluate(r,criteria);
       else if(method==='web')results=await webAssess(r,criteria);
@@ -80,6 +81,9 @@ async function runControl(){
       const s=CQA.summarize(results,criteria);
       rows.push({conversation_id:r.conversation_id,language:r.language,total:s.total,gross:s.gross,sections:s.sections,results:results.map(v=>({...v,points:s.points[v.id],message:r.transcript[v.evidence]}))});
       jobs.push({record:r,results});
+      } catch(err) {
+        rows.push({conversation_id:r.conversation_id,language:r.language,total:null,error:err.message});
+      }
     }
     const created=Date.now();
     for(const {record:r,results} of jobs){
@@ -87,11 +91,12 @@ async function runControl(){
       if(index<0)db.records.push(r);else db.records[index]=r;
       db.runs[r.conversation_id]={criteria,original:results,results:copy(results),model:label,version:created};
     }
-    db.control={created,method:label,criteria,rows};comparison=null;save();progress('Готово. Результаты доступны в журнале обращений.');
+    db.control={created,method:label,mode:method==='cloud'?'external_api':'local',criteria,rows};comparison=null;save();progress('Завершено: '+jobs.length+' из '+records.length+'. Ошибок: '+(records.length-jobs.length)+'.');
   }catch(err){progress('Проверка не завершена. '+err.message)}
   finally{controlBusy=false;if(page==='bench')render()}
 }
 function compareTruth(items){
+  if(Array.isArray(items?.results))items=items.results.filter(r=>r.status==='ok').map(r=>({conversation_id:r.conversation_id,total:r.score?.final_score}));
   if(!Array.isArray(items)||!items.length)throw Error('Нужен непустой JSON-массив.');
   const byId=new Map();
   for(const row of items){
@@ -111,8 +116,34 @@ document.addEventListener('change',async e=>{
 document.addEventListener('click',e=>{
  const act=e.target.closest('[data-control]')?.dataset.control;
  if(act==='run')runControl();
+ if(act==='sample')runControl(true);
+ if(act==='submit'&&db.control){
+   try{downloadResult('results.json',submission(db.control))}catch(err){progress(err.message)}
+ }
  if(act==='export'&&db.control){
    const url=URL.createObjectURL(new Blob([JSON.stringify(db.control,null,2)],{type:'application/json'}));
    const link=document.createElement('a');link.href=url;link.download='control-results.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
 });
+
+
+function downloadResult(filename,data){
+ const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+ const link=document.createElement('a');link.href=url;link.download=filename;link.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function submission(batch){
+ const ids={contact:'contact',need:'discovery',identity:'identification',advice:'consultation',empathy:'empathy',clarity:'dialogue',closing:'closure',gross:'critical'};
+ if(batch.criteria.length!==8||!CQA.defaults.every(d=>batch.criteria.some(c=>c.id===d.id&&c.type===d.type&&c.weight===d.weight&&c.allowNA===d.allowNA&&JSON.stringify(c.scale)===JSON.stringify(d.scale)))){
+   throw Error('Для формата 1.0 нужны восемь официальных критериев с исходными весами и шкалами. Для изменённой методики скачайте протокол.');
+ }
+ return {schema_version:'1.0',team_name:'Панды судного дня',model:{mode:batch.mode||(batch.method==='Локальные правила'||batch.method===modelName?'local':'external_api'),name:batch.method},
+ results:batch.rows.map(row=>{
+   if(row.error)return {conversation_id:row.conversation_id,status:'error',criteria:[],score:null,error:row.error};
+   return {conversation_id:row.conversation_id,status:'ok',criteria:row.results.map(r=>({
+     criterion_id:ids[r.id],value:r.value==='N/A'?null:r.value==='Да'?true:r.value==='Нет'?false:r.value,
+     rationale:r.reason,evidence_turns:[r.evidence+1]
+   })),score:{final_score:row.total,critical_flag:row.gross}};
+ })};
+}
+
