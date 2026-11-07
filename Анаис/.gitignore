@@ -1,9 +1,0 @@
-.env
-node_modules/
-tmp/
-*.log
-data/state.json
-data/state.tmp
-
-output/live-test-report*.json
-~$*

@@ -1,9 +1,0 @@
-{
-  "name": "Пример структуры — не официальный чек-лист",
-  "official": false,
-  "precision": 2,
-  "criteria": [
-    {"id":"greeting","title":"Приветствие","instruction":"Оператор приветствует клиента в начале разговора.","weight":1,"type":"boolean","min":0,"max":1,"allowNA":false,"section":"Коммуникация"},
-    {"id":"resolution","title":"Решение запроса","instruction":"Полнота предложенного решения: 0 — нет решения, 1 — частичное, 2 — полное. N/A только если клиент не сформулировал запрос.","weight":1,"type":"numeric","min":0,"max":2,"allowNA":true,"section":"Результат"}
-  ]
-}
