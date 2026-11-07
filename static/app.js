@@ -1,21 +1,26 @@
-// State variables
+// ==========================================================================
+// FREEDOM BROKER CQA v2.0 — FRONTEND CONTROLLER
+// High-Density Enterprise UI (Tremor Raw + TanStack Table + cmdk patterns)
+// ==========================================================================
+
 let currentDialogueId = null;
 let currentDialogueData = null;
 let currentEvaluationData = null;
 let activeAppealCriterion = null;
+let allCachedDialogues = [];
 
-// Initialize on DOM load
 document.addEventListener("DOMContentLoaded", () => {
     initTabs();
     initFilters();
     initActionButtons();
+    initDropdownAndHotkeys();
     loadStats();
     loadDialogues();
     loadCriteria();
     loadAppeals();
 });
 
-// Tab Navigation
+// 1. Tab Navigation & Keyboard Shortcuts (1, 2, 3)
 function initTabs() {
     const tabs = document.querySelectorAll(".nav-tab");
     const slideInd = document.getElementById("pres-slide-indicator");
@@ -23,7 +28,7 @@ function initTabs() {
         tab.addEventListener("click", () => {
             tabs.forEach(t => t.classList.remove("active"));
             document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-            
+
             tab.classList.add("active");
             const target = tab.getAttribute("data-tab");
             document.getElementById(target).classList.add("active");
@@ -37,17 +42,19 @@ function initTabs() {
     });
 }
 
-// Action Buttons
+// 2. Action Buttons & Unified Appeal Trigger
 function initActionButtons() {
     document.getElementById("btn-run-eval").addEventListener("click", () => {
         if (currentDialogueId) runEvaluation(currentDialogueId);
     });
 
     document.getElementById("btn-batch-eval").addEventListener("click", () => {
+        closeDropdowns();
         runBatchEvaluation();
     });
 
     document.getElementById("btn-import-dev").addEventListener("click", () => {
+        closeDropdowns();
         importDevData();
     });
 
@@ -66,43 +73,159 @@ function initActionButtons() {
     document.getElementById("btn-save-decision").addEventListener("click", () => {
         saveSupervisorDecision();
     });
+
+    const headerAppealBtn = document.getElementById("btn-header-appeal");
+    if (headerAppealBtn) {
+        headerAppealBtn.addEventListener("click", () => {
+            openAppealModal(null, null);
+        });
+    }
 }
 
-// Filters
+// 3. System Dropdown & Cmd+K Command Palette
+function initDropdownAndHotkeys() {
+    const opsBtn = document.getElementById("btn-ops-menu");
+    const opsMenu = document.getElementById("ops-dropdown");
+    if (opsBtn && opsMenu) {
+        opsBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            opsMenu.classList.toggle("open");
+        });
+        document.addEventListener("click", () => {
+            opsMenu.classList.remove("open");
+        });
+    }
+
+    const cmdkBtn = document.getElementById("btn-cmdk");
+    const cmdkInput = document.getElementById("cmdk-input");
+    if (cmdkBtn) {
+        cmdkBtn.addEventListener("click", openCmdkModal);
+    }
+    if (cmdkInput) {
+        cmdkInput.addEventListener("input", () => renderCmdkResults(cmdkInput.value));
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+            e.preventDefault();
+            openCmdkModal();
+            return;
+        }
+        if (e.key === "Escape") {
+            ["cmdk-modal", "appeal-modal", "decision-modal", "criterion-modal"].forEach(closeModal);
+            closeDropdowns();
+            return;
+        }
+        // Quick tab switching (1, 2, 3) when not typing in an input
+        const tag = (document.activeElement && document.activeElement.tagName) || "";
+        if (!["INPUT", "TEXTAREA", "SELECT"].includes(tag)) {
+            if (e.key === "1") document.querySelector('[data-tab="dialogues-tab"]')?.click();
+            if (e.key === "2") document.querySelector('[data-tab="appeals-tab"]')?.click();
+            if (e.key === "3") document.querySelector('[data-tab="checklist-tab"]')?.click();
+        }
+    });
+}
+
+function closeDropdowns() {
+    const opsMenu = document.getElementById("ops-dropdown");
+    if (opsMenu) opsMenu.classList.remove("open");
+}
+
+function openCmdkModal() {
+    const modal = document.getElementById("cmdk-modal");
+    const input = document.getElementById("cmdk-input");
+    if (!modal || !input) return;
+    modal.style.display = "flex";
+    input.value = "";
+    renderCmdkResults("");
+    setTimeout(() => input.focus(), 20);
+}
+
+function renderCmdkResults(query) {
+    const container = document.getElementById("cmdk-results");
+    if (!container) return;
+    const q = (query || "").trim().toLowerCase();
+    container.innerHTML = "";
+
+    const quickCommands = [
+        { label: "Фильтр: Показать только фатальные ошибки (FATAL)", hint: "Критерий №8", action: () => { setKpiFilter("fatal"); closeModal("cmdk-modal"); } },
+        { label: "Перейти в Центр апелляций", hint: "Вкладка 2", action: () => { document.querySelector('[data-tab="appeals-tab"]')?.click(); closeModal("cmdk-modal"); } },
+        { label: "Открыть Регламент (Матрица 8 критериев)", hint: "Вкладка 3", action: () => { document.querySelector('[data-tab="checklist-tab"]')?.click(); closeModal("cmdk-modal"); } },
+        { label: "Сбросить все фильтры диалогов", hint: "Все 65", action: () => { setKpiFilter(""); closeModal("cmdk-modal"); } }
+    ];
+
+    quickCommands.filter(c => !q || c.label.toLowerCase().includes(q)).forEach(cmd => {
+        const div = document.createElement("div");
+        div.className = "cmdk-item";
+        div.innerHTML = `<span>${cmd.label}</span><span class="mono-hint">${cmd.hint}</span>`;
+        div.addEventListener("click", cmd.action);
+        container.appendChild(div);
+    });
+
+    const matches = allCachedDialogues
+        .filter(d => !q || d.conversation_id.toLowerCase().includes(q) || d.language.toLowerCase().includes(q) || d.channel.toLowerCase().includes(q))
+        .slice(0, 12);
+
+    matches.forEach(d => {
+        const div = document.createElement("div");
+        div.className = "cmdk-item";
+        const scoreStr = d.has_fatal_flaw ? "FATAL" : (d.total_score !== null ? `${Number(d.total_score).toFixed(1)}%` : "--");
+        div.innerHTML = `
+            <span class="tabular-nums"><strong>${d.conversation_id}</strong> · ${d.language} · ${d.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
+            <span class="mono-hint tabular-nums">${scoreStr}</span>
+        `;
+        div.addEventListener("click", () => {
+            document.querySelector('[data-tab="dialogues-tab"]')?.click();
+            selectDialogue(d.conversation_id);
+            closeModal("cmdk-modal");
+        });
+        container.appendChild(div);
+    });
+}
+
+// 4. Filters & Interactive Tremor KPI Cards
 function initFilters() {
     document.getElementById("filter-lang").addEventListener("change", loadDialogues);
     document.getElementById("filter-channel").addEventListener("change", loadDialogues);
     const filterStatus = document.getElementById("filter-status");
-    if (filterStatus) filterStatus.addEventListener("change", loadDialogues);
+    if (filterStatus) filterStatus.addEventListener("change", () => {
+        syncKpiActiveCards(filterStatus.value);
+        loadDialogues();
+    });
 
-    // Clickable KPI cards
+    const searchInput = document.getElementById("filter-search");
+    if (searchInput) {
+        searchInput.addEventListener("input", () => {
+            renderDialoguesList(allCachedDialogues);
+        });
+    }
+
     const kpiFatal = document.getElementById("kpi-card-fatal");
     if (kpiFatal) {
         kpiFatal.addEventListener("click", () => {
-            if (filterStatus) {
-                filterStatus.value = filterStatus.value === "fatal" ? "" : "fatal";
-                loadDialogues();
-            }
+            document.querySelector('[data-tab="dialogues-tab"]')?.click();
+            const nextVal = filterStatus && filterStatus.value === "fatal" ? "" : "fatal";
+            setKpiFilter(nextVal);
         });
     }
 
     const kpiEval = document.getElementById("kpi-card-evaluated");
     if (kpiEval) {
         kpiEval.addEventListener("click", () => {
-            if (filterStatus) {
-                filterStatus.value = filterStatus.value === "evaluated" ? "" : "evaluated";
-                loadDialogues();
-            }
+            document.querySelector('[data-tab="dialogues-tab"]')?.click();
+            const nextVal = filterStatus && filterStatus.value === "evaluated" ? "" : "evaluated";
+            setKpiFilter(nextVal);
         });
     }
 
     const kpiTotal = document.getElementById("kpi-card-total");
     if (kpiTotal) {
         kpiTotal.addEventListener("click", () => {
+            document.querySelector('[data-tab="dialogues-tab"]')?.click();
             document.getElementById("filter-lang").value = "";
             document.getElementById("filter-channel").value = "";
-            if (filterStatus) filterStatus.value = "";
-            loadDialogues();
+            if (searchInput) searchInput.value = "";
+            setKpiFilter("");
         });
     }
 
@@ -115,7 +238,25 @@ function initFilters() {
     }
 }
 
-// Load KPI Stats
+function setKpiFilter(statusValue) {
+    const filterStatus = document.getElementById("filter-status");
+    if (filterStatus) filterStatus.value = statusValue;
+    syncKpiActiveCards(statusValue);
+    loadDialogues();
+}
+
+function syncKpiActiveCards(statusValue) {
+    document.querySelectorAll(".kpi-item").forEach(el => el.classList.remove("active-filter"));
+    if (statusValue === "fatal") {
+        document.getElementById("kpi-card-fatal")?.classList.add("active-filter");
+    } else if (statusValue === "evaluated") {
+        document.getElementById("kpi-card-evaluated")?.classList.add("active-filter");
+    } else {
+        document.getElementById("kpi-card-total")?.classList.add("active-filter");
+    }
+}
+
+// 5. Load KPI Stats
 async function loadStats() {
     try {
         const res = await fetch("/api/stats");
@@ -138,13 +279,13 @@ async function loadStats() {
     }
 }
 
-// Load Dialogue List
+// 6. Load & Render High-Density Dialogue Table
 async function loadDialogues() {
     const lang = document.getElementById("filter-lang").value;
     const channel = document.getElementById("filter-channel").value;
     const filterStatus = document.getElementById("filter-status");
     const status = filterStatus ? filterStatus.value : "";
-    
+
     let url = "/api/dialogues?";
     if (lang) url += `language=${encodeURIComponent(lang)}&`;
     if (channel) url += `channel=${encodeURIComponent(channel)}&`;
@@ -153,7 +294,13 @@ async function loadDialogues() {
     try {
         const res = await fetch(url);
         const dialogues = await res.json();
+        allCachedDialogues = dialogues;
         renderDialoguesList(dialogues);
+
+        // Auto-select first dialogue on initial load so inspector is immediately populated
+        if (!currentDialogueId && dialogues.length > 0) {
+            selectDialogue(dialogues[0].conversation_id);
+        }
     } catch (e) {
         console.error("Failed to load dialogues", e);
     }
@@ -161,37 +308,50 @@ async function loadDialogues() {
 
 function renderDialoguesList(dialogues) {
     const container = document.getElementById("dialogues-container");
+    const searchInput = document.getElementById("filter-search");
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
+    const filtered = query
+        ? dialogues.filter(d => d.conversation_id.toLowerCase().includes(query) || d.language.toLowerCase().includes(query))
+        : dialogues;
+
+    const countBadge = document.getElementById("visible-count-badge");
+    if (countBadge) countBadge.textContent = `${filtered.length} зап.`;
+
     container.innerHTML = "";
 
-    if (dialogues.length === 0) {
-        container.innerHTML = `<div style="padding:16px;text-align:center;color:#605e5c;">Диалоги не найдены</div>`;
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Диалоги по фильтру не найдены</div>`;
         return;
     }
 
-    dialogues.forEach(d => {
+    filtered.forEach(d => {
         const item = document.createElement("div");
         item.className = `dialogue-item ${currentDialogueId === d.conversation_id ? 'active' : ''}`;
-        
-        let scoreHtml = `<span class="diag-score">--</span>`;
+
+        let scoreHtml = `<span class="diag-score tabular-nums">N/A</span>`;
         if (d.total_score !== null) {
             let scoreClass = d.total_score >= 80 ? "score-good" : (d.total_score >= 50 ? "score-mid" : "score-bad");
             if (d.has_fatal_flaw) {
-                scoreClass = "score-bad";
-                scoreHtml = `<span class="diag-score ${scoreClass}">FATAL</span>`;
+                scoreHtml = `<span class="diag-score score-bad tabular-nums">FATAL · ${Number(d.total_score).toFixed(0)}%</span>`;
             } else {
-                scoreHtml = `<span class="diag-score ${scoreClass}">${Number(d.total_score).toFixed(2)}%</span>`;
+                scoreHtml = `<span class="diag-score ${scoreClass} tabular-nums">${Number(d.total_score).toFixed(1)}%</span>`;
             }
         }
 
+        const channelLabel = d.channel === "agent chat" ? "Чат" : "Звонок";
+
         item.innerHTML = `
-            <div>
-                <div class="diag-title">${d.conversation_id}</div>
-                <div class="diag-meta">
-                    <span class="badge badge-${d.language.toLowerCase()}">${d.language}</span>
-                    <span class="badge ${d.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${d.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
-                </div>
+            <div class="diag-id-cell">
+                <div class="diag-title tabular-nums">${d.conversation_id}</div>
+                <div class="diag-channel-sub">${channelLabel}</div>
             </div>
-            ${scoreHtml}
+            <div class="diag-lang-cell">
+                <span class="badge badge-${d.language.toLowerCase()}">${d.language}</span>
+            </div>
+            <div class="diag-score-cell">
+                ${scoreHtml}
+            </div>
         `;
 
         item.addEventListener("click", () => {
@@ -202,10 +362,10 @@ function renderDialoguesList(dialogues) {
     });
 }
 
-// Select and Load Single Dialogue
+// 7. Select Single Dialogue & Render Split-Screen Inspector
 async function selectDialogue(cid) {
     currentDialogueId = cid;
-    loadDialogues(); // Update active highlight
+    renderDialoguesList(allCachedDialogues);
 
     try {
         const res = await fetch(`/api/dialogues/${cid}`);
@@ -221,16 +381,15 @@ async function selectDialogue(cid) {
 }
 
 function renderDialogueDetails(dialogue) {
-    document.getElementById("current-dialogue-title").textContent = `Диалог: ${dialogue.conversation_id}`;
+    document.getElementById("current-dialogue-title").textContent = dialogue.conversation_id;
     document.getElementById("btn-run-eval").style.display = "inline-flex";
 
     const badgesContainer = document.getElementById("current-dialogue-badges");
     badgesContainer.innerHTML = `
         <span class="badge badge-${dialogue.language.toLowerCase()}">${dialogue.language}</span>
-        <span class="badge ${dialogue.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${dialogue.channel}</span>
+        <span class="badge ${dialogue.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${dialogue.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
     `;
 
-    // Audio player handling
     const audioContainer = document.getElementById("audio-player-container");
     const audioPlayer = document.getElementById("voice-audio-player");
     if (dialogue.audio_url) {
@@ -241,7 +400,6 @@ function renderDialogueDetails(dialogue) {
         audioPlayer.src = "";
     }
 
-    // Render transcript lines
     const transcriptBody = document.getElementById("transcript-body");
     transcriptBody.innerHTML = "";
 
@@ -254,13 +412,18 @@ function renderDialogueDetails(dialogue) {
 
         let speakerName = "Клиент";
         if (msg.speaker === "operator") speakerName = "Оператор Freedom Broker";
-        if (msg.speaker === "bot") speakerName = "Чат-бот";
-        if (msg.speaker === "system") speakerName = "Системное событие";
+        if (msg.speaker === "bot") speakerName = "Автоинформатор / Бот";
+        if (msg.speaker === "system") speakerName = "Система";
+
+        const lineNum = String(idx + 1).padStart(2, "0");
 
         row.innerHTML = `
             <div class="msg-header">
-                <span class="speaker-${msg.speaker}">${speakerName}</span>
-                <span class="msg-time">${msg.timestamp}</span>
+                <div class="msg-header-left">
+                    <span class="msg-index tabular-nums">#${lineNum}</span>
+                    <span class="speaker-${msg.speaker}">${speakerName}</span>
+                </div>
+                <span class="msg-time tabular-nums">${msg.timestamp || ""}</span>
             </div>
             <div class="msg-text">${msg.text}</div>
         `;
@@ -268,32 +431,49 @@ function renderDialogueDetails(dialogue) {
     });
 }
 
-// Render Evaluation Scorecard
+// 8. Render 8-Criteria Scorecard
 function renderScorecard(evalData) {
     const totalBadge = document.getElementById("scorecard-total-badge");
     const fatalAlert = document.getElementById("fatal-alert");
     const naNotice = document.getElementById("na-rebalance-notice");
+    const headerAppealBtn = document.getElementById("btn-header-appeal");
     const container = document.getElementById("scorecard-body");
 
     container.innerHTML = "";
 
     if (!evalData) {
         totalBadge.textContent = "--%";
-        totalBadge.style.background = "#605e5c";
+        totalBadge.style.borderColor = "var(--border-subtle)";
+        totalBadge.style.color = "var(--text-secondary)";
         fatalAlert.style.display = "none";
         naNotice.style.display = "none";
+        if (headerAppealBtn) headerAppealBtn.style.display = "none";
         container.innerHTML = `
             <div class="empty-placeholder">
-                <p>Оценка еще не выполнена.<br>Нажмите кнопку <strong>«Оценить диалог»</strong> вверху.</p>
+                <div class="placeholder-eyebrow">ОЖИДАЕТ ОЦЕНКИ</div>
+                <p>Нажмите <strong>«↻ Переоценить»</strong> в заголовке стенограммы для расчета баллов.</p>
             </div>
         `;
         return;
     }
 
-    totalBadge.textContent = evalData.criteria_results.some(c => c.needs_review) ? "Требуется проверка" : (evalData.total_score === null ? "Не рассчитывается" : `${Number(evalData.total_score).toFixed(2)}%`);
-    if (evalData.total_score >= 80) totalBadge.style.background = "var(--success)";
-    else if (evalData.total_score >= 50) totalBadge.style.background = "#d83b01";
-    else totalBadge.style.background = "var(--danger)";
+    if (headerAppealBtn) headerAppealBtn.style.display = "inline-flex";
+
+    const needsReview = evalData.criteria_results.some(c => c.needs_review);
+    totalBadge.textContent = needsReview
+        ? "ПРОВЕРКА"
+        : (evalData.total_score === null ? "N/A" : `${Number(evalData.total_score).toFixed(2)}%`);
+
+    if (evalData.has_fatal_flaw || evalData.total_score < 50) {
+        totalBadge.style.borderColor = "var(--status-fatal-border)";
+        totalBadge.style.color = "var(--status-fatal-text)";
+    } else if (evalData.total_score >= 80) {
+        totalBadge.style.borderColor = "var(--border-emerald)";
+        totalBadge.style.color = "var(--status-success-text)";
+    } else {
+        totalBadge.style.borderColor = "var(--status-warning-border)";
+        totalBadge.style.color = "var(--status-warning-text)";
+    }
 
     fatalAlert.style.display = evalData.has_fatal_flaw ? "block" : "none";
 
@@ -302,31 +482,38 @@ function renderScorecard(evalData) {
 
     evalData.criteria_results.forEach(crit => {
         const card = document.createElement("div");
-        card.className = `crit-card ${crit.is_fatal && crit.score === 0 ? 'fatal-active' : ''} ${crit.is_na ? 'na-active' : ''}`;
+        const isFatalTriggered = crit.is_fatal && crit.score === 1;
+        card.className = `crit-card ${isFatalTriggered ? 'fatal-active' : ''} ${crit.is_na ? 'na-active' : ''}`;
 
         let scoreBadgeClass = crit.score === crit.max_points ? "score-good" : (crit.score > 0 ? "score-mid" : "score-bad");
-        let scoreText = crit.is_fatal ? (crit.score === 1 ? "Да · нарушение" : "Нет") : `${crit.score} / ${crit.max_points}`;
-        
-        if (crit.is_na) {
-            scoreBadgeClass = "badge-chat";
-            scoreText = "N/A (Исключен)";
+        let scoreText = crit.is_fatal ? (crit.score === 1 ? "FATAL · ДА" : "0 · НЕТ") : `${crit.score} / ${crit.max_points}`;
+
+        if (crit.is_fatal && crit.score === 0) {
+            scoreBadgeClass = "score-good";
+        } else if (crit.is_fatal && crit.score === 1) {
+            scoreBadgeClass = "score-bad";
         }
 
-        if (crit.needs_review) scoreText = "Требует проверки";
+        if (crit.is_na) {
+            scoreBadgeClass = "badge-chat";
+            scoreText = "N/A";
+        }
+
+        if (crit.needs_review) scoreText = "ПРОВЕРКА";
 
         let weightText = `Вес: ${crit.original_weight}%`;
         if (crit.is_na) {
-            weightText += ` ➔ Перераспределен`;
+            weightText += ` → N/A (перераспределен)`;
         } else if (crit.effective_weight && crit.effective_weight !== crit.original_weight) {
-            weightText += ` ➔ Скорректирован: ${crit.effective_weight}%`;
+            weightText += ` → Эфф. вес: ${crit.effective_weight}%`;
         }
 
         let quoteBtnHtml = "";
         if (crit.quote) {
             quoteBtnHtml = `
-                <button class="crit-quote-btn" onclick="scrollToQuote('${encodeURIComponent(crit.quote)}', '${crit.timestamp}')">
-                    <span>🎯</span>
-                    <span><strong>Цитата:</strong> "${crit.quote}" ${crit.timestamp ? `(${crit.timestamp})` : ''}</span>
+                <button class="crit-quote-btn" onclick="scrollToQuote('${encodeURIComponent(crit.quote)}', '${crit.timestamp || ""}')">
+                    <span class="mono-hint">ЦИТАТА:</span>
+                    <span>«${crit.quote}» ${crit.timestamp ? `<span class="mono-hint tabular-nums">[${crit.timestamp}]</span>` : ''}</span>
                 </button>
             `;
         }
@@ -335,14 +522,14 @@ function renderScorecard(evalData) {
             <div class="crit-header">
                 <div>
                     <div class="crit-name">${crit.name}</div>
-                    <div class="crit-weight-tag">${weightText}</div>
+                    <div class="crit-weight-tag tabular-nums">${weightText}</div>
                 </div>
-                <span class="crit-score-badge ${scoreBadgeClass}">${scoreText}</span>
+                <span class="crit-score-badge ${scoreBadgeClass} tabular-nums">${scoreText}</span>
             </div>
-            <div class="crit-explanation">${crit.is_na ? `<em>Причина N/A: ${crit.na_reason}</em>` : crit.explanation}</div>
+            <div class="crit-explanation">${crit.is_na ? `<em>Неприменимо (N/A): ${crit.na_reason}</em>` : crit.explanation}</div>
             ${quoteBtnHtml}
             <div class="crit-actions">
-                <button class="btn-appeal" onclick="openAppealModal('${crit.criterion_id}', '${encodeURIComponent(crit.name)}')">⚖️ Оспорить критерий</button>
+                <button class="btn-appeal-inline" onclick="openAppealModal('${crit.criterion_id}', '${encodeURIComponent(crit.name)}')">Оспорить пункт →</button>
             </div>
         `;
 
@@ -350,7 +537,7 @@ function renderScorecard(evalData) {
     });
 }
 
-// Scroll and Highlight Evidence in Transcript
+// 9. Scroll & Highlight Verbatim Quote in Transcript
 window.scrollToQuote = function(encodedQuote, timestamp) {
     const quote = decodeURIComponent(encodedQuote).toLowerCase();
     const rows = document.querySelectorAll(".msg-row");
@@ -369,7 +556,7 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
     });
 
     if (targetRow) {
-        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
         targetRow.classList.add("msg-highlight");
         setTimeout(() => {
             targetRow.classList.remove("msg-highlight");
@@ -377,49 +564,39 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
     }
 };
 
-// Run Single Evaluation
+// 10. Evaluation Actions
 async function runEvaluation(cid) {
     const btn = document.getElementById("btn-run-eval");
     btn.disabled = true;
-    btn.textContent = "⏳ Оценка...";
+    btn.textContent = "Оценка...";
 
     try {
-        const res = await fetch(`/api/evaluate/${cid}`, { method: "POST" });
-        const result = await res.json();
+        await fetch(`/api/evaluate/${cid}`, { method: "POST" });
         await selectDialogue(cid);
         loadStats();
     } catch (e) {
         alert("Ошибка оценки диалога: " + e);
     } finally {
         btn.disabled = false;
-        btn.textContent = "▶ Оценить диалог";
+        btn.textContent = "↻ Переоценить";
     }
 }
 
-// Run Batch Evaluation
 async function runBatchEvaluation() {
-    const btn = document.getElementById("btn-batch-eval");
-    btn.disabled = true;
-    btn.textContent = "⏳ Пакетная обработка...";
-
     try {
         const res = await fetch("/api/evaluate_all", { method: "POST" });
         const data = await res.json();
-        alert(`Успешно оценено диалогов: ${data.evaluated_count}`);
+        alert(`Пакетная проверка завершена. Оценено диалогов: ${data.evaluated_count}`);
         loadStats();
         loadDialogues();
         if (currentDialogueId) selectDialogue(currentDialogueId);
     } catch (e) {
         alert("Ошибка пакетной оценки: " + e);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "⚡ Оценить все";
     }
 }
 
-// Import DEV API
 async function importDevData() {
-    const url = prompt("Введите ссылку на GET API DEV или контрольного набора:", "https://example.com/api/get_dataset?group_id=DEV");
+    const url = prompt("Введите URL GET API DEV или оставьте по умолчанию для локальной синхронизации:", "https://example.com/api/get_dataset?group_id=DEV");
     if (!url) return;
 
     try {
@@ -430,26 +607,50 @@ async function importDevData() {
         });
         const data = await res.json();
         if (data.status === "success") {
-            alert(`Импортировано записей: ${data.imported_records}`);
+            alert(`Синхронизировано записей: ${data.imported_records}`);
             loadStats();
             loadDialogues();
         } else {
-            alert("Информация: " + (data.message || "Использован локальный набор DEV"));
+            alert("Статус: " + (data.message || "Использован локальный набор DEV"));
         }
     } catch (e) {
         alert("Ошибка запроса к API: " + e);
     }
 }
 
-// --- TAB 2: APPEALS ---
-
+// 11. TAB 2: APPEALS WORKFLOW
 window.openAppealModal = function(criterionId, encodedName) {
     if (!currentEvaluationData) {
-        alert("Сначала оцените диалог!");
+        alert("Сначала выберите оцененный диалог.");
         return;
     }
-    activeAppealCriterion = criterionId;
-    document.getElementById("appeal-criterion-name").textContent = `Критерий: ${decodeURIComponent(encodedName)}`;
+
+    const selectGroup = document.getElementById("appeal-criterion-select-group");
+    const selectEl = document.getElementById("appeal-criterion-select");
+    const titleEl = document.getElementById("appeal-criterion-name");
+
+    if (criterionId && encodedName) {
+        activeAppealCriterion = criterionId;
+        titleEl.style.display = "block";
+        titleEl.textContent = `Диалог ${currentDialogueId} · ${decodeURIComponent(encodedName)}`;
+        if (selectGroup) selectGroup.style.display = "none";
+    } else {
+        titleEl.style.display = "block";
+        titleEl.textContent = `Диалог: ${currentDialogueId}`;
+        if (selectGroup && selectEl) {
+            selectGroup.style.display = "block";
+            selectEl.innerHTML = "";
+            currentEvaluationData.criteria_results.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.criterion_id;
+                opt.textContent = `${c.name} (текущий балл: ${c.score}/${c.max_points})`;
+                selectEl.appendChild(opt);
+            });
+            activeAppealCriterion = selectEl.value;
+            selectEl.onchange = () => { activeAppealCriterion = selectEl.value; };
+        }
+    }
+
     document.getElementById("appeal-comment").value = "";
     document.getElementById("appeal-modal").style.display = "flex";
 };
@@ -457,7 +658,7 @@ window.openAppealModal = function(criterionId, encodedName) {
 async function submitAppeal() {
     const comment = document.getElementById("appeal-comment").value.trim();
     if (!comment) {
-        alert("Пожалуйста, введите комментарий с причиной апелляции!");
+        alert("Укажите аргументацию оператора для подачи апелляции.");
         return;
     }
 
@@ -474,7 +675,6 @@ async function submitAppeal() {
         });
         await res.json();
         closeModal("appeal-modal");
-        alert("Апелляция успешно подана и передана проверяющему!");
         loadStats();
         loadAppeals();
     } catch (e) {
@@ -490,30 +690,30 @@ async function loadAppeals() {
         tbody.innerHTML = "";
 
         if (appeals.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:#605e5c;">Нет поданных апелляций</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Активных апелляций нет</td></tr>`;
             return;
         }
 
         appeals.forEach(a => {
             const tr = document.createElement("tr");
-            let statusBadge = `<span class="badge" style="background:#fff4ce;color:#797673;">На рассмотрении</span>`;
-            let actionHtml = `<button class="btn btn-primary" onclick="openDecisionModal('${a.id}', '${a.conversation_id}', '${encodeURIComponent(a.criterion_name || a.criterion_id)}', '${encodeURIComponent(a.operator_comment)}', ${a.original_score})">Рассмотреть</button>`;
+            let statusBadge = `<span class="diag-score score-mid">На рассмотрении</span>`;
+            let actionHtml = `<button class="btn btn-primary btn-sm" onclick="openDecisionModal('${a.id}', '${a.conversation_id}', '${encodeURIComponent(a.criterion_name || a.criterion_id)}', '${encodeURIComponent(a.operator_comment)}', ${a.original_score})">Рассмотреть</button>`;
 
             if (a.status === "accepted") {
-                statusBadge = `<span class="badge" style="background:#dff6dd;color:#107c10;">Удовлетворена (+${a.new_score}б)</span>`;
-                actionHtml = `<span style="font-size:11px;color:#605e5c;">${a.supervisor_comment || 'Решено'}</span>`;
+                statusBadge = `<span class="diag-score score-good tabular-nums">Удовлетворена (${a.new_score} б.)</span>`;
+                actionHtml = `<span class="mono-hint">${a.supervisor_comment || 'Пересчитано'}</span>`;
             } else if (a.status === "rejected") {
-                statusBadge = `<span class="badge" style="background:#fdf3f2;color:#a80000;">Отклонена</span>`;
-                actionHtml = `<span style="font-size:11px;color:#605e5c;">${a.supervisor_comment || 'Решено'}</span>`;
+                statusBadge = `<span class="diag-score score-bad">Отклонена</span>`;
+                actionHtml = `<span class="mono-hint">${a.supervisor_comment || 'Отказано'}</span>`;
             }
 
             tr.innerHTML = `
-                <td><strong>${a.conversation_id}</strong></td>
+                <td class="tabular-nums"><strong>${a.conversation_id}</strong></td>
                 <td>${a.criterion_name || a.criterion_id}</td>
-                <td>${a.original_score}</td>
-                <td><em>"${a.operator_comment}"</em></td>
+                <td class="tabular-nums">${a.original_score}</td>
+                <td><em>«${a.operator_comment}»</em></td>
                 <td>${statusBadge}</td>
-                <td>${actionHtml}</td>
+                <td style="text-align:right;">${actionHtml}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -528,8 +728,8 @@ window.openDecisionModal = function(appealId, convId, encCritName, encComment, o
     document.getElementById("review-conv-id").textContent = convId;
     document.getElementById("review-crit-name").textContent = decodeURIComponent(encCritName);
     document.getElementById("review-op-comment").textContent = decodeURIComponent(encComment);
-    document.getElementById("review-new-score").value = (origScore === 0 ? 1.0 : origScore + 1.0);
-    document.getElementById("review-comment").value = "Обоснование оператора принято, оценка пересмотрена в пользу сотрудника.";
+    document.getElementById("review-new-score").value = (origScore === 0 ? 1 : origScore + 1);
+    document.getElementById("review-comment").value = "Аргументация оператора подтверждена по стенограмме, балл пересмотрен.";
     document.getElementById("decision-modal").style.display = "flex";
 };
 
@@ -551,17 +751,16 @@ async function saveSupervisorDecision() {
         const result = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(result.detail));
         closeModal("decision-modal");
-        alert(`Решение сохранено! Новый итоговый балл диалога: ${result.new_total_score}%`);
         loadStats();
         loadAppeals();
+        loadDialogues();
         if (currentDialogueId) selectDialogue(currentDialogueId);
     } catch (e) {
         alert("Ошибка сохранения решения: " + e);
     }
 }
 
-// --- TAB 3: CHECKLIST BUILDER ---
-
+// 12. TAB 3: CHECKLIST MATRIX BUILDER
 async function loadCriteria() {
     try {
         const res = await fetch("/api/criteria");
@@ -573,19 +772,19 @@ async function loadCriteria() {
             const card = document.createElement("div");
             card.className = "criteria-edit-card";
             card.innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div style="font-weight:700;font-size:14px;color:var(--fb-green);">${c.name}</div>
-                    <span class="badge badge-ru">${c.weight}%</span>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                    <div style="font-weight:600;font-size:13px;color:var(--text-primary);">${c.name}</div>
+                    <span class="badge badge-kz tabular-nums">Вес ${c.weight}%</span>
                 </div>
-                <div style="font-size:12px;color:#605e5c;">${c.description}</div>
-                <div style="font-size:11px;display:flex;gap:8px;margin-top:4px;">
-                    <span>Шкала: <strong>${c.scale_type} (макс ${c.max_points})</strong></span>
-                    <span>N/A: <strong>${c.allow_na ? 'Да' : 'Нет'}</strong></span>
-                    ${c.is_fatal ? '<span style="color:var(--danger);font-weight:700;">Критическая ошибка</span>' : ''}
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.45;">${c.description}</div>
+                <div class="tabular-nums" style="font-size:11px;display:flex;gap:10px;margin-top:4px;color:var(--text-muted);font-family:var(--font-mono);">
+                    <span>Шкала: <strong style="color:var(--text-primary);">${c.scale_type} (max ${c.max_points})</strong></span>
+                    <span>N/A: <strong style="color:var(--text-primary);">${c.allow_na ? 'Да' : 'Нет'}</strong></span>
+                    ${c.is_fatal ? '<span style="color:var(--status-fatal-text);font-weight:600;">FATAL FLAG</span>' : ''}
                 </div>
                 <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
-                    <button class="btn btn-secondary" onclick="editCriterion('${c.id}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.description)}', ${c.weight}, '${c.scale_type}', ${c.allow_na}, ${c.is_fatal})">Редактировать</button>
-                    <button class="btn btn-secondary" style="color:var(--danger);" onclick="deleteCriterion('${c.id}')">Удалить</button>
+                    <button class="btn btn-secondary btn-sm" onclick="editCriterion('${c.id}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.description)}', ${c.weight}, '${c.scale_type}', ${c.allow_na}, ${c.is_fatal})">Изменить</button>
+                    <button class="btn btn-secondary btn-sm" style="color:var(--status-fatal-text);" onclick="deleteCriterion('${c.id}')">Удалить</button>
                 </div>
             `;
             container.appendChild(card);
@@ -596,7 +795,7 @@ async function loadCriteria() {
 }
 
 window.openCriterionModal = function() {
-    document.getElementById("crit-modal-title").textContent = "Новый критерий оценки (23-й час)";
+    document.getElementById("crit-modal-title").textContent = "Новый критерий регламента";
     document.getElementById("edit-crit-id").value = "c_new_" + Date.now();
     document.getElementById("edit-crit-name").value = "";
     document.getElementById("edit-crit-desc").value = "";
@@ -629,7 +828,7 @@ async function saveCriterion() {
     const isFatal = document.getElementById("edit-crit-fatal").checked;
 
     if (!name) {
-        alert("Укажите название критерия!");
+        alert("Укажите название критерия.");
         return;
     }
 
@@ -652,7 +851,6 @@ async function saveCriterion() {
         const result = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(result.detail));
         closeModal("criterion-modal");
-        alert("Критерий сохранен! Чек-лист обновлен и готов к применению на диалогах.");
         loadCriteria();
     } catch (e) {
         alert("Ошибка сохранения критерия: " + e);
@@ -660,7 +858,7 @@ async function saveCriterion() {
 }
 
 window.deleteCriterion = async function(id) {
-    if (!confirm("Удалить этот критерий из чек-листа?")) return;
+    if (!confirm("Удалить этот критерий из матрицы регламента?")) return;
     try {
         await fetch(`/api/criteria/${id}`, { method: "DELETE" });
         loadCriteria();
@@ -669,7 +867,7 @@ window.deleteCriterion = async function(id) {
     }
 };
 
-// Modal helpers
 window.closeModal = function(modalId) {
-    document.getElementById(modalId).style.display = "none";
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = "none";
 };
