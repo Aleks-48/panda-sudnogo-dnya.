@@ -482,6 +482,10 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"
 def serve_index():
     return FileResponse(Path(__file__).with_name("static") / "index.html")
 
+@app.get("/presentation")
+def serve_presentation():
+    return FileResponse(Path(__file__).with_name("static") / "presentation.html")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)

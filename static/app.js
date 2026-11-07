@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Tab Navigation
 function initTabs() {
     const tabs = document.querySelectorAll(".nav-tab");
+    const slideInd = document.getElementById("pres-slide-indicator");
     tabs.forEach(tab => {
         tab.addEventListener("click", () => {
             tabs.forEach(t => t.classList.remove("active"));
@@ -26,6 +27,9 @@ function initTabs() {
             tab.classList.add("active");
             const target = tab.getAttribute("data-tab");
             document.getElementById(target).classList.add("active");
+            if (slideInd && tab.getAttribute("data-slide")) {
+                slideInd.textContent = tab.getAttribute("data-slide");
+            }
 
             if (target === "appeals-tab") loadAppeals();
             if (target === "checklist-tab") loadCriteria();

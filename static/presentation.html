@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Презентация · Freedom Broker & Bank CQA (Панда Судного Дня)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pres-dark-bar: #16231b;
+            --pres-darker-bar: #111a14;
+            --pres-sage: #839382;
+            --pres-sage-dark: #677766;
+            --pres-sand: #ece6df;
+            --pres-sand-light: #f6f3ee;
+            --pres-card-bg: #ffffff;
+            --fb-green: #3c6e47;
+            --fb-green-bright: #4fb84f;
+            --pres-blue: #2b5b75;
+            --pres-gold: #c98a4b;
+            --pres-danger: #b42318;
+            --text-dark: #162019;
+            --text-muted: #566158;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d140f;
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Bar */
+        .pres-header {
+            height: 52px;
+            background: var(--pres-dark-bar);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid rgba(79, 184, 79, 0.25);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-logos-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box-freedom {
+            height: 26px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-box-freedom img {
+            height: 24px;
+            width: auto;
+        }
+
+        .logo-box-shokan {
+            height: 26px;
+            display: flex;
+            align-items: center;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            padding-left: 12px;
+        }
+
+        .logo-box-shokan img {
+            height: 24px;
+            width: auto;
+        }
+
+        .header-panda-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(79, 184, 79, 0.4);
+            border-radius: 999px;
+            padding: 3px 12px 3px 5px;
+        }
+
+        .header-panda-pill img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid var(--fb-green-bright);
+        }
+
+        .header-panda-text {
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: var(--fb-green-bright);
+            text-transform: uppercase;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #b5c7ba;
+            text-transform: uppercase;
+        }
+
+        .btn-header {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-header:hover {
+            background: var(--fb-green);
+            border-color: var(--fb-green-bright);
+        }
+
+        /* Main Viewport & Slide Deck */
+        .deck-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #090e0a;
+            padding: 12px;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            max-width: 1360px;
+            aspect-ratio: 16 / 9;
+            max-height: calc(100vh - 120px);
+            background: var(--pres-sand);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Slide Inner Layouts */
+        .slide-topbar {
+            height: 34px;
+            background: var(--pres-dark-bar);
+            color: #d1ded4;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(79, 184, 79, 0.25);
+        }
+
+        .slide-topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slide-topbar-left .tag-bullet {
+            color: var(--fb-green-bright);
+            font-size: 8px;
+        }
+
+        .slide-bottombar {
+            height: 32px;
+            background: var(--pres-dark-bar);
+            color: #bccbc0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+            border-top: 1px solid rgba(79, 184, 79, 0.2);
+        }
+
+        .slide-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+        }
+
+        .slide-body.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        /* Left Split (Sage Green) */
+        .split-left {
+            background: var(--pres-sage);
+            color: #ffffff;
+            padding: 32px 34px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 14px;
+            overflow-y: auto;
+        }
+
+        .split-left h1 {
+            font-size: 34px;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+        }
+
+        .split-left h2 {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+        }
+
+        .split-left .subtitle {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #e5efe4;
+        }
+
+        .split-left .hero-quote-card {
+            background: rgba(22, 35, 27, 0.65);
+            border: 1px solid rgba(79, 184, 79, 0.35);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.45;
+            color: #f0f7f1;
+            margin-top: 4px;
+        }
+
+        /* Right Split (Warm Sand + White Cards) */
+        .split-right {
+            background: var(--pres-sand);
+            padding: 28px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .pres-card {
+            background: var(--pres-card-bg);
+            border-radius: 16px;
+            padding: 14px 18px;
+            box-shadow: 0 4px 14px rgba(22, 35, 27, 0.08);
+            border: 1.5px solid transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: transform 0.2s;
+        }
+
+        .pres-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .pres-card.card-border-green { border-color: var(--fb-green); }
+        .pres-card.card-border-blue { border-color: var(--pres-blue); }
+        .pres-card.card-border-gold { border-color: var(--pres-gold); }
+
+        .card-bullet-label {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--fb-green);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .card-border-blue .card-bullet-label { color: var(--pres-blue); }
+        .card-border-gold .card-bullet-label { color: #b06927; }
+
+        .pres-card h3 {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.25;
+        }
+
+        .pres-card p {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Team Showcase Grid */
+        .team-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 6px;
+        }
+
+        .member-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            border: 2px solid var(--fb-green);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .member-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: #16231b;
+            color: var(--fb-green-bright);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 900;
+            border: 2px solid var(--fb-green-bright);
+            flex-shrink: 0;
+        }
+
+        .member-name {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        .member-role {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--fb-green);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .member-group-badge {
+            display: inline-block;
+            background: var(--pres-sand);
+            border: 1px solid #d8cfc5;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #233327;
+            margin-top: 2px;
+        }
+
+        .member-skills {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            line-height: 1.35;
+            margin-top: 4px;
+        }
+
+        /* Title Slide Logos Banner */
+        .title-logos-banner {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: rgba(22, 35, 27, 0.45);
+            padding: 10px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(79, 184, 79, 0.3);
+            margin-top: 10px;
+            width: fit-content;
+        }
+
+        .title-panda-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid var(--fb-green-bright);
+            background: #000;
+        }
+
+        .title-freedom-img {
+            height: 28px;
+            width: auto;
+        }
+
+        .title-shokan-img {
+            height: 28px;
+            width: auto;
+            border-left: 1.5px solid rgba(255, 255, 255, 0.25);
+            padding-left: 14px;
+        }
+
+        /* Metric Grid inside Cards */
+        .metric-pill-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .metric-pill {
+            background: var(--pres-sand);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #16231b;
+        }
+
+        /* Footer Controls */
+        .pres-footer-controls {
+            height: 54px;
+            background: var(--pres-dark-bar);
+            border-top: 1px solid rgba(79, 184, 79, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+            color: #ffffff;
+            z-index: 10;
+        }
+
+        .footer-left-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #c4d4c8;
+        }
+
+        .footer-center-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-nav:hover {
+            background: var(--fb-green);
+            border-color: var(--fb-green-bright);
+            transform: scale(1.05);
+        }
+
+        .slide-counter-badge {
+            background: #111b14;
+            border: 1px solid rgba(79, 184, 79, 0.35);
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: var(--fb-green-bright);
+        }
+
+        .footer-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action-pill {
+            background: var(--fb-green);
+            color: #ffffff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-action-pill:hover {
+            background: var(--fb-green-bright);
+            color: #111a14;
+        }
+
+        /* Print to PDF rules */
+        @media print {
+            body {
+                background: #ffffff !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .pres-header, .pres-footer-controls {
+                display: none !important;
+            }
+            .deck-container {
+                padding: 0 !important;
+                background: #ffffff !important;
+                display: block !important;
+            }
+            .slide {
+                display: flex !important;
+                position: relative !important;
+                opacity: 1 !important;
+                transform: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                aspect-ratio: 16 / 9 !important;
+                page-break-after: always !important;
+                margin-bottom: 20px !important;
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Global Header -->
+    <header class="pres-header">
+        <div class="header-left">
+            <div class="header-logos-row">
+                <div class="logo-box-freedom" title="Freedom Holding / Freedom Bank">
+                    <img src="/static/freedom_logo_light.svg" alt="Freedom Bank">
+                </div>
+                <div class="logo-box-shokan" title="Кокшетауский университет имени Шокана Уалиханова">
+                    <img src="/static/shokan_logo_light.svg" alt="Ualikhanov University">
+                </div>
+            </div>
+            <div class="header-panda-pill">
+                <img src="/static/panda_logo.jpg" alt="Панда Судного Дня">
+                <div class="header-panda-text">ПАНДА СУДНОГО ДНЯ • AI CQA</div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <span>FREEDOM BROKER &amp; BANK • ХАКАТОН 2026</span>
+            <a href="/" target="_blank" class="btn-header">🖥️ Открыть прототип UI</a>
+        </div>
+    </header>
+
+    <!-- Slide Deck Viewport -->
+    <main class="deck-container">
+
+        <!-- SLIDE 1: ТИТУЛЬНЫЙ -->
+        <section class="slide active" data-slide-index="1">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> FREEDOM BROKER &amp; BANK CQA
+                </div>
+                <div>КОКШЕТАУСКИЙ УНИВЕРСИТЕТ ИМ. Ш. УАЛИХАНОВА • PRE-SEED</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h1>Freedom CQA</h1>
+                    <div class="subtitle">
+                        Мультиязычная интеллектуальная система контроля качества диалогов контакт-центра (RU / KZ / EN) и автоматического арбитража в Microsoft Dynamics 365
+                    </div>
+                    <div class="hero-quote-card">
+                        «Порядок в диалогах — тишина в обращениях. Превращаем субъективный аудит операторов в прозрачный математический контроль за пару кликов.»
+                    </div>
+                    <div class="title-logos-banner">
+                        <img src="/static/panda_logo.jpg" alt="Panda Crest" class="title-panda-img">
+                        <img src="/static/freedom_logo_light.svg" alt="Freedom Logo" class="title-freedom-img">
+                        <img src="/static/shokan_logo_light.svg" alt="Shokan Logo" class="title-shokan-img">
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="card-bullet-label">● КОМАНДА «ПАНДА СУДНОГО ДНЯ»</div>
+                    <div class="team-grid">
+                        <div class="member-card">
+                            <div class="member-header">
+                                <div class="member-avatar">АН</div>
+                                <div>
+                                    <div class="member-name">Александр Новокрещенов</div>
+                                    <div class="member-role">Team Lead &amp; ML / Backend</div>
+                                    <div class="member-group-badge">Группа: ИСР-242уск</div>
+                                </div>
+                            </div>
+                            <div class="member-skills">
+                                Архитектура системы, промпт-инжиниринг, LLM-валидация цитат, бэкенд на FastAPI/SQLite, безопасный Safe Mode.
+                            </div>
+                        </div>
+
+                        <div class="member-card">
+                            <div class="member-header">
+                                <div class="member-avatar">РА</div>
+                                <div>
+                                    <div class="member-name">Русланкызы Анаис</div>
+                                    <div class="member-role">Frontend, UI/UX &amp; Java</div>
+                                    <div class="member-group-badge">Группа: DSR-232</div>
+                                </div>
+                            </div>
+                            <div class="member-skills">
+                                UI/UX дизайн в стиле презентации, клиентская логика, интерактивный транскрипт с подсветкой доказательств, Java-модули.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pres-card card-border-green" style="margin-top:6px;">
+                        <div class="card-bullet-label">● ВУЗ И АКАДЕМИЧЕСКАЯ БАЗА</div>
+                        <h3>НАО «Кокшетауский университет имени Шокана Уалиханова»</h3>
+                        <p>Факультет информационных технологий и цифровых систем. Разработка создана в рамках хакатона Freedom CQA.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Панда Судного Дня • Ualikhanov University • Freedom Bank</div>
+                <div>01 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: ПРОБЛЕМАТИКА КОНТАКТ-ЦЕНТРА -->
+        <section class="slide" data-slide-index="2">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> ПРОБЛЕМА РЫНКА (10 СЕК)
+                </div>
+                <div>КОНТАКТ-ЦЕНТРЫ ФИНТЕХА И БРОКЕРИДЖА</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>3 главные боли контроля качества диалогов</h2>
+                    <div class="subtitle">
+                        Выборочный ручной аудит охватывает менее 2% обращений, порождает саботаж операторов и пропускает фатальные утечки.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Супервайзер слушает 5 звонков из 200, находит случайную ошибку и лишает премии. Оператор демотивирован, а реальные грубые нарушения остаются незамеченными.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● МАСШТАБ 100 000+ ОБРАЩЕНИЙ В МЕСЯЦ</div>
+                        <h3>Слепая зона в 98% клиентского потока</h3>
+                        <p>Чат Tradernet, Freedom Bank, входящие звонки. Ручной выборочный контроль не справляется с пиковыми нагрузками и оставляет серую зону.</p>
+                    </div>
+
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● КАЗАХСКИЙ ЯЗЫК И CODE-SWITCHING</div>
+                        <h3>Языковой барьер стандартных LLM</h3>
+                        <p>Клиенты смешивают казахский и русский язык («Сәлеметсіз бе, дивидендтер қашан түседі на карту?»). Обычные модели ошибочно штрафуют за несовпадение языков.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● КОНФЛИКТЫ И ДЕПРЕМИРОВАНИЕ</div>
+                        <h3>Субъективность и отсутствие доказательств</h3>
+                        <p>Оценки ставятся без точных привязок к репликам. Споры между сотрудником и контролером длятся днями, снижая лояльность персонала.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Проблематика контакт-центра</div>
+                <div>02 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: РЕШЕНИЕ И ПРОДУКТ -->
+        <section class="slide" data-slide-index="3">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> РЕШЕНИЕ И ПРОДУКТ (30 СЕК)
+                </div>
+                <div>ИНТЕГРАЦИЯ С MICROSOFT DYNAMICS 365</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Freedom CQA: 100% аудит без галлюцинаций</h2>
+                    <div class="subtitle">
+                        Встраиваемый веб-компонент CRM-системы супервайзера с автоматической оценкой по официальному чек-листу Freedom Broker.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Каждый балл подкреплён дословной цитатой оператора и точным таймкодом. Если доказательства в тексте нет — оценка не ставится.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● ОФИЦИАЛЬНЫЙ ЧЕК-ЛИСТ (8 КРИТЕРИЕВ)</div>
+                        <h3>Точный расчет по регламенту Freedom</h3>
+                        <p>Веса: c1 (10%), c2 (15%), c3 (20%), c4 (20%), c5 (15%), c6 (15%), c7 (5%), c8 (0% — изолированный флаг грубых ошибок). Дискретные шкалы 0..20 и 0..10.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● ПРИНЦИП EVIDENCE GROUNDING</div>
+                        <h3>Абсолютная защита от выдуманных фактов</h3>
+                        <p>Система сверяет цитату модели с буквальным текстом транскрипта. Несовпадение подстроки моментально блокирует итог и отправляет на ручную проверку.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● ЗВОНКИ + ЧАТЫ В ЕДИНОМ ОКНЕ</div>
+                        <h3>Интерактивный плеер и таймкоды</h3>
+                        <p>Клик на цитату в карточке автоматически центрирует транскрипт и подсвечивает точную фразу оператора золотистым маркером.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Полное описание продукта</div>
+                <div>03 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: МУЛЬТИЯЗЫЧНОСТЬ И CODE-SWITCHING -->
+        <section class="slide" data-slide-index="4">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> МУЛЬТИЯЗЫЧНЫЙ AI-ДВИЖОК (20 СЕК)
+                </div>
+                <div>КАЗАХСКИЙ, РУССКИЙ, АНГЛИЙСКИЙ И СМЕШАННЫЙ ЯЗЫК</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Специализированная поддержка Казахстана</h2>
+                    <div class="subtitle">
+                        Алгоритмическое распознавание казахских символов (ә, і, ң, ғ, ү, ұ, қ, ө, һ) и учет специфики гибридной речи.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Если клиент обратился: "Сәлеметсіз бе!", оператор обязан поприветствовать его на казахском языке и представиться. Нарушение языковой вежливости фиксируется автоматически.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● КРИТЕРИЙ C1: ПРИВЕТСТВИЕ И ЯЗЫК</div>
+                        <h3>Приветствие + Представление на языке клиента</h3>
+                        <p>RU: Здравствуйте + Меня зовут. KZ: Сәлеметсіз бе / Қайырлы күн + Менің атым/есімім. Ответ только на русском на казахский запрос — c1 = 0.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● КРИТЕРИЙ C3: ИДЕНТИФИКАЦИЯ (ИИН / ЖСН)</div>
+                        <h3>Запрос ИИН ≠ Подтверждённая идентификация</h3>
+                        <p>Балл начисляется строго при наличии явной верификации («личность подтверждена», «тексеру сәтті өтті») до раскрытия данных по счету.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● КРИТЕРИЙ C5: ЭМПАТИЯ В ДВУХ СРЕДАХ</div>
+                        <h3>Отработка негатива на RU / KZ / EN</h3>
+                        <p>«Понимаю ваше беспокойство», «Кешіріңіз, қолайсыздық үшін». Эмпатия не может быть N/A, если клиент выразил недовольство.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Мультиязычная калибровка</div>
+                <div>04 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: БЕЗОПАСНОСТЬ И SAFE MODE -->
+        <section class="slide" data-slide-index="5">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> КОРПОРАТИВНАЯ БЕЗОПАСНОСТЬ (20 СЕК)
+                </div>
+                <div>СТРОГИЙ БЕЗОПАСНЫЙ РЕЖИМ (SAFE FALLBACK)</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Zero-Hallucination &amp; Защита данных</h2>
+                    <div class="subtitle">
+                        Система спроектирована для работы в банковском контуре: ни при каких условиях не выдаются случайные или неподтверждённые оценки.
+                    </div>
+                    <div class="hero-quote-card">
+                        «При отключении LLM или сбое сети сервис не выдумывает цифры: total_score становится null, выставляется флаг needs_review. KPI операторов защищены от багов.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● ВАЛИДАЦИЯ ЦИТАТ ПО АЛФАВИТУ</div>
+                        <h3>Авто-восстановление индексов реплик</h3>
+                        <p>Устраняет смещение 0-based/1-based индексов моделей, очищает внешние кавычки «...», нормализует неразрывные пробелы без потери контекста.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● ИЗОЛЯЦИЯ ФАТАЛЬНЫХ ОШИБОК (C8)</div>
+                        <h3>Предложение в обход компании, хамство, утечки</h3>
+                        <p>Перевод на личный Kaspi оператора фиксируется флагом c8=1. При c8=0 отсутствие нарушений не блокирует общий балл диалога.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● ЛОКАЛЬНЫЙ КОНТУР OLLAMA</div>
+                        <h3>Работа без интернета и утечек за периметр</h3>
+                        <p>Поддержка локальных моделей (Qwen 2.5:7b, DeepSeek) внутри ЦОД Freedom Bank. Полное соответствие требованиям регулятора РК.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Безопасность и отказоустойчивость</div>
+                <div>05 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: МАТЕМАТИКА N/A И ЧЕК-ЛИСТ -->
+        <section class="slide" data-slide-index="6">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> МАТЕМАТИКА ЧЕК-ЛИСТА (20 СЕК)
+                </div>
+                <div>ОФИЦИАЛЬНАЯ МАТРИЦА ВЕСОВ И ДИСКРЕТНЫХ ШКАЛ</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Честный пересчет при условии N/A</h2>
+                    <div class="subtitle">
+                        Неприменимые критерии не занижают оценку оператора: их вес пропорционально распределяется между активными правилами.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Если клиент не задавал вопросов, требующих идентификации (общий тариф), критерий c3 становится N/A. Максимальный возможный балл остаётся ровно 100%.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● СТРУКТУРА ВЕСОВ FREEDOM</div>
+                        <h3>10% · 15% · 20% · 20% · 15% · 15% · 5% · [0%]</h3>
+                        <p>Строгое соблюдение официального 3-страничного регламента CQA Freedom Broker. Итоговый балл округляется до 2 знаков после запятой.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● ДИСКРЕТНЫЕ СТУПЕНИ ОЦЕНОК</div>
+                        <h3>Защита от дробных произвольных баллов</h3>
+                        <p>Критерий №4 (Консультация): только 0, 5, 10, 15, 20. Критерий №6 (Управление диалогом): только 0, 4, 7, 10. Любые другие значения отклоняются.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● РАЗРЕШЕНИЕ N/A ТОЛЬКО ПО ПРАВИЛАМ</div>
+                        <h3>c2, c3, c4, c7 строго с обоснованием</h3>
+                        <p>Критерии c1 (Приветствие), c5 (Эмпатия), c6 (Грамотность) не могут быть N/A — они обязательны в каждом диалоге.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Математическая модель</div>
+                <div>06 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: ЦЕНТР АПЕЛЛЯЦИЙ -->
+        <section class="slide" data-slide-index="7">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> КОНТУР СУПЕРВИЗОРА (20 СЕК)
+                </div>
+                <div>ЦЕНТР АПЕЛЛЯЦИЙ И КАЛИБРОВКИ ОЦЕНОК</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Защита операторов и прозрачный арбитраж</h2>
+                    <div class="subtitle">
+                        Оператор может оспорить любой балл в 1 клик прямо из CRM. Супервизор принимает решение с сохранением исторического снимка.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Снимок шкалы чек-листа сохраняется навсегда: даже если завтра правила изменятся, апелляция будет пересчитана строго по исторической шкале.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● ПОДАЧА АПЕЛЛЯЦИИ ОПЕРАТОРОМ</div>
+                        <h3>Обоснование несогласия с контекстом</h3>
+                        <p>Кнопка «Оспорить критерий» в карточке диалога передаёт комментарий сотрудника в единый рабочий журнал супервизора.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● ПРИНЯТИЕ / ОТКЛОНЕНИЕ СУПЕРВИЗОРОМ</div>
+                        <h3>Мгновенный автоматический пересчет</h3>
+                        <p>При удовлетворении апелляции итоговый балл диалога мгновенно пересчитывается с учетом весов N/A без риска искажения базы.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● CHECKLIST SNAPSHOTS</div>
+                        <h3>Аудиторский след решений</h3>
+                        <p>Полное логирование первоначальных оценок, комментариев сторон и времени вынесения вердикта контролера качества.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Центр апелляций</div>
+                <div>07 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 8: СТРЕСС-ТЕСТ 23-ГО ЧАСА -->
+        <section class="slide" data-slide-index="8">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> СТРЕСС-ТЕСТ 23-ГО ЧАСА (20 СЕК)
+                </div>
+                <div>ДИНАМИЧЕСКИЙ КОНСТРУКТОР ЧЕК-ЛИСТА</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Гибкая смена критериев без изменения кода</h2>
+                    <div class="subtitle">
+                        Интерактивный конструктор правил позволяет супервайзеру добавить новый регламент за 30 секунд.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Появился новый продукт или требование Нацбанка? Добавьте критерий в UI: веса перебалансируются автоматически, старые оценки не ломаются.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● ЛЮБЫЕ ШКАЛЫ И ВЕСА</div>
+                        <h3>Бинарные, 0..5, 0..10, 0..20, 0..100</h3>
+                        <p>Конфигурация названий, подробных инструкций для промпта, флагов N/A и фатальных признаков прямо через веб-интерфейс.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● ЗАЩИТА ОТ ФАЛЬСИФИКАЦИЙ</div>
+                        <h3>Новые критерии без цитат уходят на review</h3>
+                        <p>Если для динамического критерия LLM не нашла цитату, система не рисует фейковый балл, а ставит needs_review=True.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● 23 ИЗ 23 ТЕСТОВ (100% PASS)</div>
+                        <h3>Полное покрытие юнит- и интеграционными тестами</h3>
+                        <p>Проверены крайние случаи: пустые цитаты, сдвиги индексов, мультиязычность, детекция языков, формулы N/A и сохранение снимков.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Динамический конструктор</div>
+                <div>08 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 9: ТЕХНОЛОГИЧЕСКИЙ СТЕК -->
+        <section class="slide" data-slide-index="9">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> АРХИТЕКТУРА И СТЕК (20 СЕК)
+                </div>
+                <div>НАДЁЖНОСТЬ, СКОРОСТЬ, МИНИМАЛЬНЫЕ РАСХОДЫ</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Промышленная архитектура решения</h2>
+                    <div class="subtitle">
+                        Легковесный и производительный стек без избыточных зависимостей. Готов к развёртыванию в Docker и Kubernetes.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Время запуска сервера — менее 1 секунды. Время валидации одного диалога — 0.08с на синтетике, 1.2с на локальной квантованной LLM.»
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● BACKEND: FASTAPI + PYTHON 3.9</div>
+                        <h3>Асинхронные эндпоинты и строгая типизация</h3>
+                        <p>REST API для интеграции с очередями телефонии и чатов. SQLite в режиме WAL с версионированием снимков и транзакционностью.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● FRONTEND: VANILLA JS + MODULAR CSS</div>
+                        <h3>Нулевой накладной вес для Dynamics 365</h3>
+                        <p>Никаких тяжелых фреймворков. Мгновенная отрисовка внутри iFrame CRM, поддержка тёмных и светлых тем, адаптивность.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● AI CORE: MULTI-PROVIDER SUPPORT</div>
+                        <h3>Ollama (Qwen 2.5 / DeepSeek) + Groq + Gemini</h3>
+                        <p>Единый унифицированный JSON-контракт evaluations с автоматическим фоллбэком на безопасный режим ручной проверки.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Freedom CQA • Технический стек</div>
+                <div>09 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10: КОМАНДА И УНИВЕРСИТЕТ -->
+        <section class="slide" data-slide-index="10">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> КОМАНДА И ВУЗ (25 СЕК)
+                </div>
+                <div>НАО «КОКШЕТАУСКИЙ УНИВЕРСИТЕТ ИМ. ШОКАНА УАЛИХАНОВА»</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Команда «Панда Судного Дня»</h2>
+                    <div class="subtitle">
+                        Сбалансированная связка ключевых инженерных компетенций: системная архитектура, ML-инжиниринг, UI/UX и фронтенд-разработка.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Мы создали законченное продуктовое решение, готовое к боевому пилоту в контакт-центре Freedom Broker &amp; Bank уже сегодня.»
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;margin-top:10px;">
+                        <img src="/static/panda_logo.jpg" alt="Panda" style="width:54px;height:54px;border-radius:14px;border:2px solid var(--fb-green-bright);">
+                        <img src="/static/shokan_logo_light.svg" alt="Shokan" style="height:32px;">
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="member-card" style="border-color:var(--fb-green);">
+                        <div class="member-header">
+                            <div class="member-avatar">АН</div>
+                            <div>
+                                <div class="member-name">Александр Новокрещенов</div>
+                                <div class="member-role">Лидер команды · Backend &amp; ML Architect</div>
+                                <div class="member-group-badge">Группа: ИСР-242уск</div>
+                            </div>
+                        </div>
+                        <div class="member-skills">
+                            Архитектура сервиса, разработка промптов и верификатора доказательств, интеграция моделей (Ollama/Groq/Gemini), unit-тестирование, CI/CD.
+                        </div>
+                    </div>
+
+                    <div class="member-card" style="border-color:var(--pres-blue);">
+                        <div class="member-header">
+                            <div class="member-avatar" style="border-color:var(--pres-blue);color:#73b4d4;">РА</div>
+                            <div>
+                                <div class="member-name">Русланкызы Анаис</div>
+                                <div class="member-role">Frontend &amp; UI/UX Developer · Java Modules</div>
+                                <div class="member-group-badge">Группа: DSR-232</div>
+                            </div>
+                        </div>
+                        <div class="member-skills">
+                            UI/UX дизайн компонентов Dynamics 365, верстка интерактивных карточек и транскриптов, интеграция аудиозаписей, логика апелляций, Java.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Ualikhanov University • ИСР-242уск &amp; DSR-232</div>
+                <div>10 / 11</div>
+            </div>
+        </section>
+
+        <!-- SLIDE 11: ЗАКЛЮЧЕНИЕ И ДЕМОНСТРАЦИЯ -->
+        <section class="slide" data-slide-index="11">
+            <div class="slide-topbar">
+                <div class="slide-topbar-left">
+                    <span class="tag-bullet">●</span> ГОТОВНОСТЬ К ВНЕДРЕНИЮ (10 СЕК)
+                </div>
+                <div>РЕЗУЛЬТАТЫ ХАKАТОНА FREEDOM CQA</div>
+            </div>
+            <div class="slide-body">
+                <div class="split-left">
+                    <h2>Готовы к пилотному внедрению</h2>
+                    <div class="subtitle">
+                        Рабочий прототип запущен, все тесты пройдены, кодовая база зафиксирована в репозитории и подготовлена к защите.
+                    </div>
+                    <div class="hero-quote-card">
+                        «Открытый доступ к живому интерфейсу, чистому коду и презентации. Приглашаем супервайзеров и жюри протестировать систему в действии!»
+                    </div>
+                    <div style="margin-top:10px;">
+                        <a href="/" target="_blank" class="btn-action-pill" style="font-size:13px;padding:9px 18px;">
+                            🚀 Запустить Live Demo в CRM
+                        </a>
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="pres-card card-border-green">
+                        <div class="card-bullet-label">● РЕЗУЛЬТАТ ХАKАТОНА</div>
+                        <h3>100% готовность MVP</h3>
+                        <p>Полный цикл: импорт диалогов ➔ аудит по чек-листу ➔ расчет с N/A ➔ подача апелляции ➔ решение супервизора ➔ редактирование правил.</p>
+                    </div>
+
+                    <div class="pres-card card-border-blue">
+                        <div class="card-bullet-label">● КАЧЕСТВО КОДА И ТЕСТОВ</div>
+                        <h3>23 из 23 тестов OK</h3>
+                        <p>Протестированы граничные случаи, строгие типы, мультиязычность, цитирование и метрики сравнения по Ground Truth.</p>
+                    </div>
+
+                    <div class="pres-card card-border-gold">
+                        <div class="card-bullet-label">● ЭКОНОМИЧЕСКИЙ ЭФФЕКТ ДЛЯ БАНКА</div>
+                        <h3>Сокращение затрат супервайзеров на 85%</h3>
+                        <p>Переход от 2% выборочного контроля к 100% сплошному аудиту качества всех каналов коммуникаций Freedom.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-bottombar">
+                <div>Панда Судного Дня • Ualikhanov University • Freedom Bank &amp; Broker</div>
+                <div>11 / 11</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Controls Bar -->
+    <footer class="pres-footer-controls">
+        <div class="footer-left-info">
+            <span>● Стрелки <strong>←</strong> / <strong>→</strong> или <strong>Space</strong> для навигации</span>
+            <span>•</span>
+            <span>Университет им. Ш. Уалиханова</span>
+        </div>
+
+        <div class="footer-center-nav">
+            <button class="btn-nav" id="btn-prev" title="Предыдущий слайд (←)">❮</button>
+            <div class="slide-counter-badge">
+                <span id="current-slide-num">01</span> / <span id="total-slides-num">11</span>
+            </div>
+            <button class="btn-nav" id="btn-next" title="Следующий слайд (→)">❯</button>
+        </div>
+
+        <div class="footer-right-actions">
+            <button class="btn-action-pill" onclick="window.print()" title="Сохранить или распечатать слайды в PDF">
+                🖨️ Экспорт в PDF
+            </button>
+            <button class="btn-action-pill" id="btn-fullscreen" style="background:#283d2e;">
+                ⛶ Полный экран
+            </button>
+        </div>
+    </footer>
+
+    <!-- Presentation Navigation Script -->
+    <script>
+        const slides = document.querySelectorAll(".slide");
+        const currentSlideEl = document.getElementById("current-slide-num");
+        const totalSlidesEl = document.getElementById("total-slides-num");
+        let currentIndex = 0;
+
+        totalSlidesEl.textContent = String(slides.length).padStart(2, '0');
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= slides.length) index = slides.length - 1;
+
+            slides.forEach((s, idx) => {
+                if (idx === index) {
+                    s.classList.add("active");
+                } else {
+                    s.classList.remove("active");
+                }
+            });
+
+            currentIndex = index;
+            currentSlideEl.textContent = String(currentIndex + 1).padStart(2, '0');
+        }
+
+        document.getElementById("btn-prev").addEventListener("click", () => {
+            showSlide(currentIndex - 1);
+        });
+
+        document.getElementById("btn-next").addEventListener("click", () => {
+            showSlide(currentIndex + 1);
+        });
+
+        // Keyboard controls
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+                e.preventDefault();
+                showSlide(currentIndex + 1);
+            } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+                e.preventDefault();
+                showSlide(currentIndex - 1);
+            } else if (e.key === "Home") {
+                e.preventDefault();
+                showSlide(0);
+            } else if (e.key === "End") {
+                e.preventDefault();
+                showSlide(slides.length - 1);
+            }
+        });
+
+        // Fullscreen toggle
+        document.getElementById("btn-fullscreen").addEventListener("click", () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Ошибка полноэкранного режима: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>

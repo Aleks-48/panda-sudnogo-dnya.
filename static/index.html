@@ -3,64 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freedom Broker · CQA Dashboard (Dynamics 365 Component)</title>
+    <title>Freedom Broker & Bank · CQA (Panda Судного Дня)</title>
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div style="padding:10px 20px;background:#fff4ce;color:#604400;font-size:13px">Демонстрационный прототип. Загружен официальный чек-лист качества чатов: 7 взвешенных критериев и отдельный флаг грубых ошибок. Без LLM результаты требуют ручной проверки; нули не являются оценками.</div>
     <div class="app-container">
-        <!-- Top App Bar (Dynamics 365 Header) -->
+        <!-- Presentation Style Top Dark Bar -->
         <header class="d365-header">
             <div class="header-left">
-                <div class="brand-badge">FREEDOM BROKER</div>
-                <div class="header-title">Conversation Quality Analytics (CQA)</div>
-                <span class="d365-tag">Dynamics 365 Component</span>
+                <a href="https://bankffin.kz" target="_blank" rel="noopener" class="freedom-logo-wrap" title="Freedom Holding / Freedom Bank">
+                    <img src="/static/freedom_logo_light.svg" alt="Freedom Bank" class="freedom-logo-img">
+                </a>
+                <span class="header-dot">•</span>
+                <div class="panda-brand-pill">
+                    <img src="/static/panda_logo.jpg" alt="Panda Судного Дня" class="panda-header-avatar">
+                    <div class="panda-brand-text">
+                        <span class="panda-team-tag">PANDA СУДНОГО ДНЯ • AI CQA</span>
+                        <span class="header-title">Freedom Broker &amp; Bank Quality Control</span>
+                    </div>
+                </div>
             </div>
+
             <div class="header-nav">
-                <button class="nav-tab active" data-tab="dialogues-tab">Диалоги и Оценка</button>
-                <button class="nav-tab" data-tab="appeals-tab">Центр Апелляций <span id="appeals-badge" class="badge-counter" style="display:none;">0</span></button>
-                <button class="nav-tab" data-tab="checklist-tab">Конструктор Чек-листа</button>
+                <button class="nav-tab active" data-tab="dialogues-tab" data-slide="01 / 03">
+                    <span class="tab-bullet">●</span> ДИАЛОГИ И ОЦЕНКА
+                </button>
+                <button class="nav-tab" data-tab="appeals-tab" data-slide="02 / 03">
+                    <span class="tab-bullet">●</span> ЦЕНТР АПЕЛЛЯЦИЙ
+                    <span id="appeals-badge" class="badge-counter" style="display:none;">0</span>
+                </button>
+                <button class="nav-tab" data-tab="checklist-tab" data-slide="03 / 03">
+                    <span class="tab-bullet">●</span> КОНСТРУКТОР ЧЕК-ЛИСТА
+                </button>
             </div>
+
             <div class="header-actions">
+                <span class="pres-meta-tag">FREEDOM FINTECH • DYNAMICS 365</span>
+                <a href="/presentation" target="_blank" class="btn btn-secondary" style="text-decoration:none;">📊 Презентация</a>
                 <button id="btn-batch-eval" class="btn btn-secondary">⚡ Оценить все</button>
                 <button id="btn-import-dev" class="btn btn-primary">📥 Загрузить DEV API</button>
             </div>
         </header>
 
-        <!-- KPI Summary Bar -->
+        <!-- Presentation Style Hero Strip & KPI Cards -->
         <section class="kpi-bar">
-            <div class="kpi-item">
-                <span class="kpi-label">Всего диалогов</span>
-                <span id="kpi-total" class="kpi-value">-</span>
+            <div class="hero-quote-pill">
+                <img src="/static/panda_logo.jpg" alt="Panda Emblem" class="hero-panda-crest">
+                <div class="hero-quote-content">
+                    <div class="hero-quote-eyebrow">● FREEDOM BROKER &amp; BANK • МУЛЬТИЯЗЫЧНЫЙ АУДИТ (RU / KZ / EN)</div>
+                    <div class="hero-quote-text">«Порядок в диалогах — прозрачный контроль качества за пару кликов. Без LLM оценки не фабрикуются.»</div>
+                </div>
             </div>
-            <div class="kpi-item">
-                <span class="kpi-label">Оценено</span>
-                <span id="kpi-evaluated" class="kpi-value">-</span>
-            </div>
-            <div class="kpi-item">
-                <span class="kpi-label">Средний балл</span>
-                <span id="kpi-avg" class="kpi-value highlight-score">-</span>
-            </div>
-            <div class="kpi-item">
-                <span class="kpi-label">Грубые ошибки</span>
-                <span id="kpi-fatal" class="kpi-value danger-score">0</span>
-            </div>
-            <div class="kpi-item">
-                <span class="kpi-label">Активные апелляции</span>
-                <span id="kpi-appeals" class="kpi-value">0</span>
+
+            <div class="kpi-cards-group">
+                <div class="kpi-item kpi-border-green">
+                    <span class="kpi-label">● ВСЕГО ДИАЛОГОВ</span>
+                    <span id="kpi-total" class="kpi-value">-</span>
+                </div>
+                <div class="kpi-item kpi-border-blue">
+                    <span class="kpi-label">● ОЦЕНЕНО</span>
+                    <span id="kpi-evaluated" class="kpi-value">-</span>
+                </div>
+                <div class="kpi-item kpi-border-green">
+                    <span class="kpi-label">● СРЕДНИЙ БАЛЛ</span>
+                    <span id="kpi-avg" class="kpi-value highlight-score">-</span>
+                </div>
+                <div class="kpi-item kpi-border-gold">
+                    <span class="kpi-label">● ГРУБЫЕ ОШИБКИ</span>
+                    <span id="kpi-fatal" class="kpi-value danger-score">0</span>
+                </div>
+                <div class="kpi-item kpi-border-blue">
+                    <span class="kpi-label">● АПЕЛЛЯЦИИ</span>
+                    <span id="kpi-appeals" class="kpi-value">0</span>
+                </div>
             </div>
         </section>
 
-        <!-- MAIN CONTENT AREA -->
+        <!-- MAIN CONTENT AREA (Split Presentation Layout: Sage Green Left + Warm Sand Right) -->
         <main class="main-content">
             <!-- TAB 1: DIALOGUES & EVALUATION -->
             <div id="dialogues-tab" class="tab-pane active">
                 <div class="workspace-layout">
-                    <!-- Left Sidebar: Dialogue List -->
+                    <!-- Left Sidebar: Presentation Sage-Olive Panel -->
                     <aside class="sidebar-list">
+                        <div class="sidebar-pres-heading">
+                            <h2>Очередь диалогов</h2>
+                            <p>Мультиязычный поток обращений клиентов Freedom (RU · KZ · EN)</p>
+                        </div>
                         <div class="sidebar-header">
                             <div class="filter-row">
                                 <select id="filter-lang" class="form-select">
@@ -70,22 +102,28 @@
                                     <option value="EN">English (EN)</option>
                                 </select>
                                 <select id="filter-channel" class="form-select">
-                                    <option value="">Все каналы</option>
-                                    <option value="agent chat">Чат</option>
-                                    <option value="voice call">Звонок</option>
+                                    <option value="">Все каналы связи</option>
+                                    <option value="agent chat">Чат поддержки</option>
+                                    <option value="voice call">Голосовой звонок</option>
                                 </select>
                             </div>
                         </div>
                         <div id="dialogues-container" class="dialogues-list">
                             <!-- Injected by JS -->
                         </div>
+                        <div class="sidebar-brand-footer">
+                            <img src="/static/freedom_logo_light.svg" alt="Freedom" class="sidebar-freedom-logo">
+                            <span>×</span>
+                            <span class="sidebar-panda-tag">PANDA CQA</span>
+                        </div>
                     </aside>
 
-                    <!-- Middle Area: Interactive Transcript -->
+                    <!-- Middle Area: Interactive Transcript (Warm Alabaster Presentation Panel) -->
                     <section class="transcript-section">
                         <div class="section-card transcript-card">
                             <div class="card-header">
                                 <div class="header-meta">
+                                    <div class="card-eyebrow">● ТРАНСКРИПТ И ДОКАЗАТЕЛЬСТВА</div>
                                     <h3 id="current-dialogue-title">Выберите диалог из списка</h3>
                                     <div class="dialogue-badges" id="current-dialogue-badges"></div>
                                 </div>
@@ -106,8 +144,9 @@
                             <!-- Transcript Body -->
                             <div id="transcript-body" class="transcript-messages">
                                 <div class="empty-placeholder">
-                                    <div class="placeholder-icon">💬</div>
-                                    <p>Выберите обращение из левого списка для просмотра транскрипта и результатов проверки.</p>
+                                    <img src="/static/panda_logo.jpg" alt="Panda CQA" class="placeholder-panda">
+                                    <div class="placeholder-eyebrow">● ГОТОВ К ПРОВЕРКЕ</div>
+                                    <p>Выберите обращение из левой колонки для просмотра транскрипта, проверки дословных цитат и расчета баллов по официальному чек-листу Freedom Broker.</p>
                                 </div>
                             </div>
                         </div>
@@ -117,21 +156,25 @@
                     <aside class="scorecard-section">
                         <div class="section-card scorecard-card">
                             <div class="card-header">
-                                <h3>Карточка оценки качества</h3>
+                                <div>
+                                    <div class="card-eyebrow">● ЧЕК-ЛИСТ КАЧЕСТВА (7 КРИТЕРИЕВ + ФЛАГ №8)</div>
+                                    <h3>Карточка оценки</h3>
+                                </div>
                                 <div id="scorecard-total-badge" class="total-score-pill">--%</div>
                             </div>
 
                             <div id="fatal-alert" class="alert-fatal" style="display:none;">
-                                ⚠️ <strong>Внимание: зафиксирована критическая ошибка!</strong> Проверьте доказательства и правило влияния на итог в чек-листе.
+                                ⚠️ <strong>Внимание: зафиксирована грубая ошибка (критерий №8)!</strong> Проверьте дословную цитату и решение в карточке.
                             </div>
 
                             <div id="na-rebalance-notice" class="alert-na" style="display:none;">
-                                ℹ️ <strong>Применено правило N/A:</strong> веса неактивных критериев автоматически перераспределены пропорционально между применимыми.
+                                ℹ️ <strong>Применено правило N/A:</strong> веса неприменимых критериев автоматически перераспределены пропорционально между активными.
                             </div>
 
                             <div id="scorecard-body" class="scorecard-list">
                                 <div class="empty-placeholder">
-                                    <p>Оценка еще не выполнена. Нажмите «Оценить диалог».</p>
+                                    <img src="/static/freedom_logo.svg" alt="Freedom Bank" class="placeholder-freedom">
+                                    <p>Оценка еще не выполнена.<br>Нажмите <strong>«Оценить диалог»</strong> для запуска валидации.</p>
                                 </div>
                             </div>
                         </div>
@@ -141,58 +184,131 @@
 
             <!-- TAB 2: APPEALS & REVIEW -->
             <div id="appeals-tab" class="tab-pane">
-                <div class="appeals-layout">
-                    <div class="section-card">
-                        <div class="card-header">
-                            <h3>Журнал апелляций (Контур супервизора / контролера)</h3>
-                            <span class="subtitle">Пересмотр спорных оценок и ручной пересчет итогов</span>
+                <div class="pres-split-page">
+                    <aside class="pres-left-Wing">
+                        <div class="pres-wing-tag">● КОНТУР СУПЕРВИЗОРА (10 СЕК)</div>
+                        <h2>Центр апелляций и калибровки</h2>
+                        <p class="pres-wing-sub">Прозрачный пересмотр спорных оценок операторов с сохранением исторической шкалы чек-листа</p>
+
+                        <div class="pres-info-card">
+                            <div class="pres-card-bullet">● ЗАЩИТА ИСТОРИИ</div>
+                            <h4>Снимок чек-листа</h4>
+                            <p>Пересчет при апелляции строго использует веса и шкалу, действовавшие в момент первичной оценки.</p>
                         </div>
-                        <div class="table-responsive">
-                            <table class="d365-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID Диалога</th>
-                                        <th>Критерий</th>
-                                        <th>Исходный балл</th>
-                                        <th>Комментарий оператора</th>
-                                        <th>Статус</th>
-                                        <th>Действие</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="appeals-table-body">
-                                    <!-- Injected by JS -->
-                                </tbody>
-                            </table>
+
+                        <div class="pres-info-card">
+                            <div class="pres-card-bullet">● ДОКАЗАТЕЛЬНАЯ БАЗА</div>
+                            <h4>Точные цитаты и таймкоды</h4>
+                            <p>Каждое решение оператора и супервизора привязано к конкретной реплике транскрипта.</p>
                         </div>
-                    </div>
+
+                        <div class="pres-wing-panda-box">
+                            <img src="/static/panda_logo.jpg" alt="Panda" class="wing-panda-img">
+                            <div>
+                                <strong>Panda Судного Дня</strong>
+                                <span>Арбитраж качества</span>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <section class="pres-right-Wing">
+                        <div class="section-card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="card-eyebrow">● РЕЕСТР ОБРАЩЕНИЙ ОПЕРАТОРОВ</div>
+                                    <h3>Журнал апелляций</h3>
+                                </div>
+                                <img src="/static/freedom_logo.svg" alt="Freedom" style="height:28px;">
+                            </div>
+                            <div class="table-responsive">
+                                <table class="d365-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Диалога</th>
+                                            <th>Критерий</th>
+                                            <th>Исходный балл</th>
+                                            <th>Комментарий оператора</th>
+                                            <th>Статус</th>
+                                            <th>Действие</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="appeals-table-body">
+                                        <!-- Injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
             <!-- TAB 3: CHECKLIST BUILDER -->
             <div id="checklist-tab" class="tab-pane">
-                <div class="checklist-layout">
-                    <div class="section-card">
-                        <div class="card-header">
+                <div class="pres-split-page">
+                    <aside class="pres-left-Wing">
+                        <div class="pres-wing-tag">● АРХИТЕКТУРА КРИТЕРИЕВ (30 СЕК)</div>
+                        <h2>Конструктор чек-листа Freedom</h2>
+                        <p class="pres-wing-sub">Гибкое управление весами, дискретными ступенями (0/5/10/15/20 и 0/4/7/10) и правилами N/A без изменения кода</p>
+
+                        <div class="pres-info-card">
+                            <div class="pres-card-bullet">● ОФИЦИАЛЬНЫЙ СТАНДАРТ</div>
+                            <h4>Веса: 10 / 15 / 20 / 20 / 15 / 15 / 5 / 0</h4>
+                            <p>Строгий контроль дискретных шкал №4 и №6, автоматический ребаланс N/A для критериев №2, №3, №4, №7.</p>
+                        </div>
+
+                        <div class="pres-info-card">
+                            <div class="pres-card-bullet">● СТРЕСС-ТЕСТ 23-ГО ЧАСА</div>
+                            <h4>Динамические правила</h4>
+                            <p>Добавление новых критериев на лету без фабрикации оценок при отсутствии подтверждающих цитат.</p>
+                        </div>
+
+                        <div class="pres-wing-panda-box">
+                            <img src="/static/panda_logo.jpg" alt="Panda" class="wing-panda-img">
                             <div>
-                                <h3>Конфигурация чек-листа оценки</h3>
-                                <p class="subtitle">Управление критериями, шкалами, весами и правилами N/A (Стресс-тест 23-го часа)</p>
+                                <strong>Freedom Broker × Panda</strong>
+                                <span>Стандарт качества 2026</span>
                             </div>
-                            <button id="btn-add-criterion" class="btn btn-primary">+ Добавить критерий</button>
                         </div>
-                        <div id="criteria-editor-list" class="criteria-grid">
-                            <!-- Injected by JS -->
+                    </aside>
+
+                    <section class="pres-right-Wing">
+                        <div class="section-card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="card-eyebrow">● АКТИВНЫЕ ПРАВИЛА ОЦЕНКИ</div>
+                                    <h3>Критерии официального чек-листа</h3>
+                                </div>
+                                <button id="btn-add-criterion" class="btn btn-primary">+ Добавить критерий</button>
+                            </div>
+                            <div id="criteria-editor-list" class="criteria-grid">
+                                <!-- Injected by JS -->
+                            </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
         </main>
+
+        <!-- Presentation Style Bottom Bar -->
+        <footer class="pres-footer">
+            <div class="pres-footer-left">
+                <span>Freedom Broker &amp; Bank CQA</span>
+                <span>•</span>
+                <span>Команда «Панда Судного Дня»</span>
+                <span>•</span>
+                <span>Мультиязычный аудит чатов и звонков (RU / KZ / EN)</span>
+            </div>
+            <div class="pres-footer-right">
+                <span id="pres-slide-indicator">01 / 03</span>
+            </div>
+        </footer>
     </div>
 
     <!-- MODAL: Submit Appeal -->
     <div id="appeal-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>Подача апелляции по критерию</h3>
+                <h3>● Подача апелляции по критерию</h3>
                 <button class="modal-close" onclick="closeModal('appeal-modal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -213,7 +329,7 @@
     <div id="decision-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>Решение проверяющего по апелляции</h3>
+                <h3>● Решение проверяющего по апелляции</h3>
                 <button class="modal-close" onclick="closeModal('decision-modal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -249,7 +365,7 @@
     <div id="criterion-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="crit-modal-title">Редактирование критерия</h3>
+                <h3 id="crit-modal-title">● Редактирование критерия</h3>
                 <button class="modal-close" onclick="closeModal('criterion-modal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -272,8 +388,8 @@
                         <select id="edit-crit-scale" class="form-select">
                             <option value="binary">Бинарный (0 или 1)</option>
                             <option value="scale_20">Ступени 0, 5, 10, 15, 20</option>
-<option value="scale_10">Ступени 0, 4, 7, 10</option>
-<option value="scale_5">Шкала 0..5 баллов</option>
+                            <option value="scale_10">Ступени 0, 4, 7, 10</option>
+                            <option value="scale_5">Шкала 0..5 баллов</option>
                             <option value="scale_100">Шкала 0..100 баллов</option>
                         </select>
                     </div>
