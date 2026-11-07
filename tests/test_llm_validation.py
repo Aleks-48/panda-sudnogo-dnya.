@@ -46,6 +46,10 @@ class LLMValidationTests(unittest.TestCase):
     def test_string_false_not_truthy(self):
         self.r['is_na'] = 'false'
         self.assertIsNone(self.run_rows([self.r])['total_score'])
+        bad_nr = dict(self.r, is_na=False, needs_review='false')
+        self.assertEqual(self.run_rows([bad_nr])['error_code'], 'model_unavailable_or_invalid_response')
+        with self.assertRaises(ValueError):
+            calculate_scores(self.c, [bad_nr])
 
     def test_missing_duplicate_invalid_scale(self):
         for rows in [[], [self.r, self.r], [dict(self.r, score=.3)]]:
@@ -103,6 +107,12 @@ class LLMValidationTests(unittest.TestCase):
         self.assertEqual(result['total_score'], 100)
         self.assertEqual(result['criteria_results'][0]['timestamp'], '00:08')
 
+        # 1-char quote wrapped in quotes must not recover across turns when evidence_index is wrong
+        short_row = dict(self.r, quote='«а»', evidence_index=99)
+        short_res = self.run_rows({'evaluations': [short_row]}, dialogue=dialogue)
+        self.assertTrue(short_res['needs_review'])
+        self.assertEqual(short_res['criteria_results'][0]['quote'], '')
+
     def test_na_with_null_score_and_whitespace_na_reason(self):
         na_crit = [{'id': 'c3', 'name': 'Идентификация', 'weight': 20, 'max_points': 1, 'allowed_scores': '[0,1]', 'allow_na': True},
                    {'id': 'c1', 'name': 'Контакт', 'weight': 10, 'max_points': 1, 'allowed_scores': '[0,1]', 'allow_na': False}]
@@ -122,7 +132,7 @@ class LLMValidationTests(unittest.TestCase):
                 {'criterion_id': 'c1', 'score': 1, 'is_na': False}
             ])
 
-    def test_non_triggered_fatal_c8_without_quote_requires_review(self):
+    def test_non_triggered_fatal_c8_without_quote_does_not_block_total(self):
         dialogue = {
             'language': 'EN',
             'channel': 'chat',
@@ -144,16 +154,25 @@ class LLMValidationTests(unittest.TestCase):
             {'criterion_id': 'c8', 'score': 0, 'is_na': False, 'na_reason': '', 'explanation': 'No gross errors', 'quote': '', 'evidence_index': -1, 'needs_review': False},
         ]
         result = self.run_rows({'evaluations': evals}, dialogue=dialogue, criteria=self.official_criteria)
-        self.assertIsNone(result['total_score'])
+        self.assertEqual(result['total_score'], 100.0)
         self.assertFalse(result['has_fatal_flaw'])
-        self.assertTrue(result['needs_review'])
+        self.assertFalse(result['needs_review'])
         self.assertEqual(result['criteria_results'][-1]['quote'], '')
+
+        # Client-only transcript must still require review and never invent a client quote
+        rows = [{'criterion_id': 'c8', 'score': 0, 'is_na': False, 'explanation': 'No violations', 'quote': '', 'evidence_index': -1, 'needs_review': False}]
+        criteria = [{'id': 'c8', 'is_fatal': True, 'weight': 0, 'fatal_on_score': 1}]
+        client_only = {'transcript': [{'speaker': 'client', 'text': 'Client only', 'timestamp': '00:01'}]}
+        validated = CQAEvaluator('mock')._validate_evidence(rows, client_only, criteria)
+        self.assertTrue(validated[0]['needs_review'])
+        self.assertEqual(validated[0]['quote'], '')
 
     def test_multilingual_language_detection_and_prompt_hints(self):
         self.assertEqual(_detect_script_lang('Сәлеметсіз бе! Менің шотым қайда?'), 'KZ')
         self.assertEqual(_detect_script_lang('Сәлеметсіз бе! Подскажите, как пополнить счёт?'), 'KZ+RU')
         self.assertEqual(_detect_script_lang('Hello, how can I withdraw funds?'), 'EN')
         self.assertEqual(_detect_script_lang('Здравствуйте, подскажите комиссию'), 'RU')
+        self.assertEqual(_detect_script_lang('Я открыл бар, как пополнить счёт?'), 'RU')
 
         kz_dialogue = {
             'language': 'KZ',
@@ -225,27 +244,20 @@ class LLMValidationTests(unittest.TestCase):
         self.assertEqual(report['per_language_accuracy']['KZ']['criterion_exact_accuracy'], 1.0)
         self.assertEqual(report['per_criterion_accuracy']['c1']['exact_accuracy'], 1.0)
 
-    def test_missing_fatal_flag_not_counted_as_correct(self):
-        truth = [{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': []}]
-        report = compare(truth, [{'conversation_id': 'x'}])
-        self.assertEqual(report['fatal_exact_accuracy'], 0)
-        self.assertIn('total_score_MAE', report)
-
-    def test_review_fatal_flag_not_counted_as_correct(self):
-        truth = [{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': []}]
-        pred = [{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': [{'criterion_id': 'c8', 'needs_review': True}]}]
-        self.assertEqual(compare(truth, pred)['fatal_exact_accuracy'], 0)
-
-    def test_client_quote_not_invented_for_absent_fatal_evidence(self):
-        rows = [{'criterion_id': 'c8', 'score': 0, 'is_na': False, 'explanation': 'No violations', 'quote': '', 'evidence_index': -1, 'needs_review': False}]
-        criteria = [{'id': 'c8', 'is_fatal': True, 'weight': 0, 'fatal_on_score': 1}]
-        dialogue = {'transcript': [{'speaker': 'client', 'text': 'Client only', 'timestamp': '00:01'}]}
-        result = CQAEvaluator('mock')._validate_evidence(rows, dialogue, criteria)
-        self.assertTrue(result[0]['needs_review'])
-        self.assertEqual(result[0]['quote'], '')
-
-    def test_russian_bar_not_kazakh(self):
-        self.assertEqual(_detect_script_lang('Я открыл бар, как пополнить счёт?'), 'RU')
+        missing_rep = compare([{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': []}], [{'conversation_id': 'x'}])
+        self.assertEqual(missing_rep['fatal_exact_accuracy'], 0)
+        self.assertIn('total_score_MAE', missing_rep)
+        review_rep = compare(
+            [{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': []}],
+            [{'conversation_id': 'x', 'has_fatal_flaw': False, 'criteria_results': [{'criterion_id': 'c8', 'needs_review': True}]}]
+        )
+        self.assertEqual(review_rep['fatal_exact_accuracy'], 0)
+        partial_review_rep = compare(
+            [{'conversation_id': 'x', 'has_fatal_flaw': True, 'criteria_results': []}],
+            [{'conversation_id': 'x', 'has_fatal_flaw': True, 'needs_review': True,
+              'criteria_results': [{'criterion_id': 'c1', 'needs_review': True}, {'criterion_id': 'c8', 'needs_review': False}]}]
+        )
+        self.assertEqual(partial_review_rep['fatal_exact_accuracy'], 1.0)
 
 
 if __name__ == '__main__':

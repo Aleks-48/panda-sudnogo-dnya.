@@ -1,10 +1,14 @@
 import os
 import json
 import re
+import sys
+from pathlib import Path
+for _sp in Path(__file__).resolve().parent.glob(".venv/lib/python*/site-packages"):
+    if str(_sp) not in sys.path:
+        sys.path.insert(0, str(_sp))
 import requests
 import math
 from dotenv import load_dotenv
-from pathlib import Path
 load_dotenv(Path(__file__).with_name(".env"))
 from typing import List, Dict, Any, Tuple, Optional
 
@@ -114,6 +118,8 @@ def calculate_scores(criteria_list: List[Dict[str, Any]], raw_evaluations: List[
         cid = item["criterion_id"]
         c_info = crit_map.get(cid, {})
         is_na = item.get("is_na", False)
+        if type(is_na) is not bool or type(item.get("needs_review", False)) is not bool:
+            raise ValueError("Wrong score or applicability type")
 
         # Require non-empty stripped reason for N/A
         na_reason = str(item.get("na_reason") or "").strip() if is_na else ""
@@ -247,6 +253,8 @@ class CQAEvaluator:
             is_na = r.get("is_na")
             if type(is_na) is not bool:
                 raise ValueError("Wrong score or applicability type")
+            if "needs_review" in r and type(r.get("needs_review")) is not bool:
+                raise ValueError("Wrong score or applicability type")
             if is_na and r.get("score") is None:
                 r["score"] = 0
             if type(r.get("score")) not in (int, float):
@@ -268,7 +276,7 @@ class CQAEvaluator:
                     matched_quote = candidate
 
             # 2. If LLM miscounted evidence_index (e.g. 1-based vs 0-based) but provided a real verbatim quote from transcript
-            if matched_idx is None and isinstance(quote, str) and len(quote.strip()) >= 3 and transcript:
+            if matched_idx is None and isinstance(quote, str) and len(_strip_outer_quotes(quote)) >= 3 and transcript:
                 candidates = []
                 for idx, turn in enumerate(transcript):
                     cand = _match_quote_in_text(quote, turn.get("text", ""))
@@ -279,7 +287,24 @@ class CQAEvaluator:
                     candidates.sort(key=lambda item: (item[0], item[1]))
                     _, matched_idx, matched_quote = candidates[0]
 
-            if matched_idx is None or not matched_quote:
+            # 3. Non-triggered fatal criterion (weight=0, is_fatal=True, score != fatal_on_score)
+            # where no violation occurred and quote is empty: do not fabricate a quote and
+            # do not block total_score provided an operator turn exists in the transcript.
+            has_operator_turn = any(
+                str(t.get("speaker", "")).lower() in ("operator", "agent") and str(t.get("text", "")).strip()
+                for t in transcript
+            )
+            if (matched_idx is None
+                    and bool(c_info.get("is_fatal", False))
+                    and float(c_info.get("weight", 0.0)) == 0.0
+                    and float(r.get("score", 0.0)) != float(c_info.get("fatal_on_score", 1))
+                    and not r.get("needs_review")
+                    and has_operator_turn
+                    and (quote is None or (isinstance(quote, str) and not quote.strip()))):
+                r["quote"] = ""
+                r["timestamp"] = ""
+                r["evidence_index"] = -1
+            elif matched_idx is None or not matched_quote:
                 r.update(needs_review=True, quote="", timestamp="")
                 r["explanation"] += " [Подтверждающий фрагмент не прошёл проверку.]"
             else:

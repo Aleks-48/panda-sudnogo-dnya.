@@ -81,9 +81,9 @@ def compare(truth, predictions):
                     na_fn += 1
 
         exp_fatal = bool(expected.get('has_fatal_flaw'))
-        fatal_valid = type(actual.get('has_fatal_flaw')) is bool and not actual.get('needs_review', False)
-        fatal_row = by_id.get('c8', {})
-        fatal_valid = fatal_valid and not fatal_row.get('needs_review', False)
+        fatal_row = by_id.get('c8')
+        c8_needs_review = bool(fatal_row.get('needs_review', False)) if fatal_row is not None else bool(actual.get('needs_review', False))
+        fatal_valid = type(actual.get('has_fatal_flaw')) is bool and not c8_needs_review
         got_fatal = actual.get('has_fatal_flaw') if fatal_valid else None
         if fatal_valid and got_fatal == exp_fatal:
             fatal += 1
