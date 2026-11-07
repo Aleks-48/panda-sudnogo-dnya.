@@ -433,21 +433,35 @@ def get_stats():
 @app.post("/api/fetch_organizers_data")
 def fetch_organizers_data(req: FetchDevRequest):
     """
-    Fetches real dataset from organizers API using backend requests (avoids CORS!).
+    Fetches real dataset from organizers API using backend requests (avoids CORS!),
+    or loads local dev_data.json if present.
     """
-    if not req.api_url:
-        return {"status": "skipped", "message": "No API URL provided"}
-    
-    try:
-        url = req.api_url
-        if "group_id" not in url and req.group_id:
-            sep = "&" if "?" in url else "?"
-            url = f"{url}{sep}group_id={req.group_id}"
+    local_dev_path = Path(__file__).with_name("dev_data.json")
+    data = None
 
-        res = requests.get(url, timeout=30)
-        res.raise_for_status()
-        data = res.json()
-        
+    if req.api_url and not req.api_url.startswith("https://example.com"):
+        try:
+            url = req.api_url
+            if "group_id" not in url and req.group_id:
+                sep = "&" if "?" in url else "?"
+                url = f"{url}{sep}group_id={req.group_id}"
+
+            res = requests.get(url, timeout=30)
+            res.raise_for_status()
+            data = res.json()
+        except Exception:
+            data = None
+
+    if data is None and local_dev_path.exists():
+        try:
+            data = json.loads(local_dev_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = None
+
+    if not data:
+        return {"status": "error", "message": "Не удалось импортировать данные. Проверьте адрес, доступ и наличие локального dev_data.json."}
+
+    try:
         if not data.get("isSuccess"):
             return {"status": "error", "message": data.get("error", "API returned false")}
             
