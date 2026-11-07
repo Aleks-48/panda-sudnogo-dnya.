@@ -10,7 +10,7 @@ let current=db.records[0].conversation_id, page='list', focus=0;
 const record=()=>db.records.find(r=>r.conversation_id===current);
 const run=()=>db.runs[current];
 const names={client:'Клиент',operator:'Оператор',system:'Система',bot:'Бот'};
-const tabs={list:'Очередь',rules:'Чек-лист',appeals:'Апелляции',stats:'Аналитика',bench:'Контрольная выборка'};
+const tabs={list:'Очередь',library:'Учебная база',calls:'Звонки',risk:'Грубые нарушения',saved:'На разбор',rules:'Чек-лист',appeals:'Апелляции',stats:'Аналитика',bench:'Контрольная выборка',guide:'Как начать'};
 const icons={list:'▤',rules:'☑',appeals:'⚖',stats:'▥'};
 const num=n=>n==null?'—':n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 function save(){
@@ -36,7 +36,7 @@ function intro(k,title,sub,actions=''){return '<div class="intro"><div><div clas
 function stamp(t){return /^\d{4}-/.test(t)?t.slice(11,19):t}
 function render(){
  $('nav').innerHTML=Object.entries(tabs).map(([k,v])=>'<button data-page="'+k+'" class="'+((page===k||page==='analysis'&&k==='list')?'active':'')+'">'+v+'</button>').join('');
- $('app').innerHTML=page==='analysis'?analysis():page==='list'?list():page==='rules'?rules():page==='appeals'?appeals():page==='bench'?benchPage():stats();
+ $('app').innerHTML=page==='analysis'?analysis():page==='list'?list():page==='rules'?rules():page==='appeals'?appeals():page==='bench'?benchPage():page==='stats'?stats():extraPage();
 }
 let localRecording;
 function callAudio(r,url){
@@ -56,7 +56,7 @@ function analysis(){
  const s=a&&CQA.summarize(a.results,a.criteria);
  const score=a?'<div class="result-head"><strong>'+num(s.total)+'</strong> / 100<p>'+esc(a.model||'Локальные правила')+' · '+(s.gross?'Есть грубая ошибка':'Без грубых ошибок')+'</p></div>'+a.criteria.map((c,i)=>'<div class="criterion"><button data-criterion="'+i+'"><span>'+esc(c.title)+'</span><b class="status">'+esc(a.results[i].value) +'　›</b></button></div>').join('')+'<details class="section-scores"><summary>Результаты разделов</summary>'+Object.entries(s.sections).map(([k,v])=>'<p>'+esc(k)+' · '+num(v)+' / 100</p>').join('')+'</details>':'<p>Запустите оценку по текущему чек-листу.</p>';
  const audioURL=/^https?:\/\//i.test(r.audio_url||'')?r.audio_url:null;
- return intro('ПРОВЕРКА ОБРАЩЕНИЯ','Анализ диалога',esc(r.title||(r.channel==='voice call'?'Звонок':'Чат'))+'　·　'+esc(r.conversation_id)+'　·　'+esc(r.language),'<button data-act="evaluate">Локальная оценка</button>'+(publicDemo ? '' : '<button data-act="model">Оценить через OpenAI</button>'))+
+ return intro('ПРОВЕРКА ОБРАЩЕНИЯ','Анализ диалога',esc(r.title||(r.channel==='voice call'?'Звонок':'Чат'))+'　·　'+esc(r.conversation_id)+'　·　'+esc(r.language),'<button data-control="bookmark">'+((db.bookmarks||[]).includes(current)?'Убрать из разбора':'На разбор')+'</button><button data-act="evaluate">Локальная оценка</button>'+(publicDemo ? '' : '<button data-act="model">Оценить через OpenAI</button>'))+
  callAudio(r,audioURL)+'<div class="columns"><article class="panel"><div class="panel-head"><h2>Расшифровка</h2><small>'+esc(r.language)+'</small></div><div class="transcript">'+transcript+'</div></article><article class="panel"><div class="panel-head"><h2>Оценка качества</h2></div>'+score+'</article></div>';
 }
 function jump(i){focus=i;closeIfOpen();document.querySelectorAll('.message').forEach(el=>el.classList.remove('selected'));const el=$('msg-'+i);if(el){el.classList.add('selected');el.scrollIntoView({block:'center',behavior:'smooth'})}const player=$('player'), r=record();if(player&&player.readyState>=1&&r.transcript[i]){const offset=(Date.parse(r.transcript[i].timestamp)-Date.parse(r.transcript[0].timestamp))/1000;if(Number.isFinite(offset))player.currentTime=Math.max(0,offset)}}
@@ -108,6 +108,8 @@ async function startWorkspace(){
      return;
    }
  }
+ const missing=window.demoRecords.filter(r=>!db.records.some(x=>x.conversation_id===r.conversation_id));
+ if(missing.length){db.records.push(...copy(missing));save()}
  if(!run())analyze();
  render();
 }
@@ -130,6 +132,7 @@ function modelDialog() {
    }catch(err){state.textContent=err.message;button.disabled=false}
  };
 }
+
 
 
 

@@ -5,7 +5,7 @@ function queuePage() {
     const count = db.records.filter(r=>r.language===lang).length;
     return '<div class="heat-row"><small>'+lang+'</small>'+Array.from({length:12},(_,i)=>'<i class="'+(i<Math.ceil(count/db.records.length*12)?'on':'')+'"></i>').join('')+'</div>';
   }).join('');
-  const hero = '<section class="hero"><div><div class="eyebrow">КОНТАКТ-ЦЕНТР</div><h1>Очередь проверок</h1><p>Загрузите разговоры, проверьте спорные реплики и передайте результаты на пересмотр.</p><div class="actions"><button data-act="import">Загрузить диалоги</button><button data-act="batch">Проверить новые</button></div></div><div class="heat" aria-label="Доля диалогов по языкам"><small>Состав очереди по языкам</small>'+languages+'</div></section>';
+  const hero = '<section class="hero"><div><div class="eyebrow">КОНТАКТ-ЦЕНТР</div><h1>Очередь проверок</h1><p>Загрузите разговоры, проверьте спорные реплики и передайте результаты на пересмотр.</p><div class="actions"><button data-page="bench">Оценить учебную базу</button><button data-act="import">Загрузить диалоги</button><button data-act="batch">Проверить новые</button></div></div><div class="heat" aria-label="Доля диалогов по языкам"><small>Состав очереди по языкам</small>'+languages+'</div></section>';
   const values = [[db.records.length,'Всего обращений'],[pending,'Ожидают проверки'],[scored.filter(s=>s.gross).length,'С грубой ошибкой'],[db.appeals.filter(a=>!a.decision&&db.runs[a.id]?.version===a.version).length,'Открытых апелляций']];
   const metrics = '<div class="metrics">'+values.map(([n,k])=>'<div><strong>'+n+'</strong><small>'+k+'</small></div>').join('')+'</div>';
   const rows = db.records.map((r,i)=>{
@@ -21,7 +21,7 @@ const modelName='Qwen2.5-3B-Instruct-q4f16_1-MLC';
 function benchPage(){
   const last=db.control, rows=last?.rows||[];
   return intro('ПРОВЕРКА МЕТОДИКИ','Контрольная выборка','Загрузите неизвестные транскрипты. Исходные оценки этой проверки сохраняются отдельно от решений по апелляциям.')+
-    '<section class="panel bench"><h2>Новая проверка</h2><p>Поддерживаются JSON организаторов, массив диалогов и отдельная запись. Для контрольного этапа выберите файл с 10 разговорами.</p><div class="tools"><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить выборку</button><button data-control="sample">Проверить 3 учебных диалога</button></div><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
+    '<section class="panel bench"><h2>Новая проверка</h2><p>Поддерживаются JSON организаторов, массив диалогов и отдельная запись. Для контрольного этапа выберите файл с 10 разговорами.</p><div class="tools"><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить выборку</button><button data-control="sample">Проверить 10 учебных диалогов</button></div><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
     (last?'<section class="panel bench"><div class="rec-top"><h2>Протокол проверки</h2><button data-control="export">Скачать протокол</button><button data-control="submit">Скачать results.json</button></div><p>'+esc(last.method)+' · '+esc(new Date(last.created).toLocaleString('ru-RU'))+' · Диалогов: '+rows.length+'</p><div class="tablewrap"><table><thead><tr><th>Диалог</th><th>Язык</th><th>Балл</th><th>Грубая ошибка</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.conversation_id)+'</td><td>'+esc(r.language)+'</td><td>'+num(r.total)+'</td><td>'+(r.error?esc(r.error):r.gross?'Да':'Нет')+'</td></tr>').join('')+'</tbody></table></div></section><section class="panel bench"><h2>Сверка с эталоном</h2><p>Загрузите JSON-массив с полями conversation_id и total (число от 0 до 100). Сопоставление идёт по ID.</p><input id="truthFile" type="file" accept=".json" aria-label="Эталонные оценки"><div id="comparison">'+(comparison||'')+'</div></section>':'');
 }
 function controlRecords(data){
@@ -146,4 +146,32 @@ function submission(batch){
    })),score:{final_score:row.total,critical_flag:row.gross}};
  })};
 }
+
+function recordLink(r){
+ const index=db.records.findIndex(item=>item.conversation_id===r.conversation_id);
+ return '<div class="criterion"><button data-record="'+index+'"><span>'+esc(r.title||r.conversation_id)+'<small>'+esc(r.conversation_id)+' · '+esc(r.language)+'</small></span><span>Открыть ↗</span></button></div>';
+}
+function extraPage(){
+ if(page==='guide')return intro('ПОМОЩЬ','Как начать','Для учебной проверки всё уже загружено.')+'<section class="panel bench"><ol><li>Откройте «Контрольная выборка».</li><li>Оставьте «Правила чек-листа» и нажмите «Проверить 10 учебных диалогов».</li><li>Откройте разговор в очереди и нажмите критерий, чтобы увидеть объяснение и реплику.</li><li>В контрольной выборке нажмите «Скачать results.json» для выгрузки.</li></ol><button data-page="bench">Перейти к проверке</button><hr><h3>Откуда взять JSON для конкурса?</h3><p>Контрольный набор выдадут организаторы. В разделе «Контрольная выборка» выберите их файл и нажмите «Оценить выборку». Для тренировки используйте встроенный набор. Его JSON также можно скачать.</p><button data-control="download-sample">Скачать учебный JSON</button></section>';
+ if(page==='library')return intro('БИБЛИОТЕКА','Учебная база','Десять вымышленных обращений на трёх языках.','<button data-control="download-sample">Скачать учебный JSON</button><button data-page="bench">Оценить базу</button>')+'<article class="panel">'+window.demoRecords.map(recordLink).join('')+'</article>';
+ const assessed=db.records.filter(r=>db.runs[r.conversation_id]);
+ if(page==='risk'){
+ const flagged=assessed.filter(r=>{const a=db.runs[r.conversation_id];return CQA.summarize(a.results,a.criteria).gross});
+ return intro('ПОВТОРНАЯ ПРОВЕРКА','Грубые нарушения','Разговоры с флагом нарушения по текущей оценке. Откройте критерий, чтобы проверить реплику.')+'<article class="panel">'+(flagged.map(recordLink).join('')||'<p class="bench">Среди оценённых диалогов флагов нет.</p>')+'</article>';
+ }
+ if(page==='calls')return intro('КАНАЛ ОБСЛУЖИВАНИЯ','Звонки','Откройте расшифровку. Для разговоров с записью доступен плеер.')+'<article class="panel">'+(db.records.filter(r=>r.channel==='voice call').map(recordLink).join('')||'<p class="bench">Звонков в базе пока нет.</p>')+'</article>';
+ const items=db.records.filter(r=>(db.bookmarks||[]).includes(r.conversation_id));
+ return intro('ЛИЧНАЯ ПОДБОРКА','На разбор','Сохраните разговор из его карточки, чтобы вернуться к нему или обсудить с коллегой.')+'<article class="panel">'+(items.map(recordLink).join('')||'<p class="bench">Подборка пуста. В карточке диалога нажмите «На разбор».</p>')+'</article>';
+}
+document.addEventListener('click',e=>{
+ const control=e.target.closest('[data-control]')?.dataset.control;
+ if(control==='download-sample')downloadResult('training-dialogues.json',{records:window.demoRecords});
+ if(control==='bookmark'){
+  const items=new Set(db.bookmarks||[]);
+  if(items.has(current))items.delete(current);else items.add(current);
+  db.bookmarks=[...items];save();render();
+ }
+ if(e.target.closest('#navToggle'))document.body.classList.toggle('nav-open');
+ if(e.target.closest('[data-page]'))document.body.classList.remove('nav-open');
+});
 

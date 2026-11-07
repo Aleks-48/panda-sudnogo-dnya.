@@ -52,3 +52,19 @@ window.demoRecords = [
   ...record,
   transcript: record.transcript.map(([timestamp, speaker, text]) => ({timestamp, speaker, text}))
 }));
+// Fictional training conversations. No customer records are distributed.
+const trainingCases = [
+ ['TR-RU-01','Возврат покупки','RU','agent chat',['Здравствуйте. В истории есть возврат, где посмотреть его статус?','Здравствуйте! Меня зовут Марат. Откройте историю и выберите возврат, чтобы увидеть статус.','Спасибо, нашла.','Если появятся вопросы, напишите нам. До свидания!']],
+ ['TR-RU-02','Предложение частной консультации','RU','agent chat',['Добрый день, как получить консультацию?','Переведите мне на личную карту, я всё объясню отдельно.','Почему оплата лично вам?','Так будет быстрее.']],
+ ['TR-KZ-03','Қосымшаға кіру','KZ','agent chat',['Сәлеметсіз бе, қосымшаға кіре алмай отырмын.','Сәлеметсіз бе! Менің атым Дана. Қандай қате шығады?','Интернет байланысы жоқ деп көрсетеді.','Байланысты тексеріңіз де, қайта кіріңіз.','Рақмет, кірдім.','Тағы сұрақ болса, хабарласыңыз. Сау болыңыз!']],
+ ['TR-EN-04','Statement download','EN','agent chat',['Hello, how can I download my account statement?','Hello! My name is Emma. Open your account, select Statements and choose a date range.','I found it, thanks.','Happy to help. Have a nice day!']],
+ ['TR-RU-05','Звонок о сроке ответа','RU','voice call',['Здравствуйте, я оставил обращение. Когда ждать ответ?','Здравствуйте! Меня зовут Алия. Подскажите, где вы оставили обращение?','В приложении, в чате поддержки.','Проверьте статус в разделе обращений.','А когда будет ответ?','Я передам вопрос коллегам.']],
+ ['TR-EN-06','Interrupted call','EN','voice call',['Hi, my transfer failed.','Hello! My name is Sam. What error message do you see?','It says the connection was lost.']],
+ ['TR-KZ-07','Карта жеткізу','KZ','agent chat',['Картамды жеткізу мәртебесін қайдан көремін?','Сәлеметсіз бе! Менің атым Әлия. Қосымшада картаға берілген өтінімді ашыңыз.','Мәртебесін көрдім, рақмет.','Тағы сұрақ болса, хабарласыңыз. Сау болыңыз!']]
+];
+window.demoRecords.push(...trainingCases.map(([conversation_id,title,language,channel,lines])=>{
+ const voice=channel==='voice call';
+ const transcript=lines.map((text,i)=>({speaker:i%2?'operator':'client',text,timestamp:voice?new Date(Date.UTC(2026,0,1,10,0,12*i)).toISOString():'00:'+String(i*9).padStart(2,'0')}));
+ if(conversation_id==='TR-EN-06')transcript.push({speaker:'system',timestamp:'2026-01-01T10:00:35Z',text:'Connection dropped. Client disconnected.'});
+ return {conversation_id,title,language,channel,transcript,audio_url:null};
+}));
