@@ -21,7 +21,7 @@ const modelName='Qwen2.5-3B-Instruct-q4f16_1-MLC';
 function benchPage(){
   const last=db.control, rows=last?.rows||[];
   return intro('ПРОВЕРКА МЕТОДИКИ','Контрольная выборка','Загрузите неизвестные транскрипты. Исходные оценки этой проверки сохраняются отдельно от решений по апелляциям.')+
-    '<section class="panel bench"><h2>Новая проверка</h2><p>Поддерживаются JSON организаторов, массив диалогов и отдельная запись. Для контрольного этапа выберите файл с 10 разговорами.</p><div class="tools"><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить выборку</button><button data-control="sample">Проверить 10 учебных диалогов</button></div><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
+    '<section class="panel bench"><h2>Новая проверка</h2><p>Встроенная база готова: 10 учебных диалогов на русском, казахском и английском.</p><div class="tools"><select id="method" aria-label="Способ оценки"><option value="rules">Правила чек-листа</option><option value="web">Локальная AI-модель · Qwen</option>'+(!publicDemo&&location.protocol!=='file:'?'<option value="cloud">Облачная AI-модель · OpenAI</option>':'')+'</select><button class="primary" data-control="run" '+(controlBusy?'disabled':'')+'>Оценить встроенную базу</button></div><details><summary>Использовать набор организаторов</summary><input id="controlFile" aria-label="Транскрипты JSON" type="file" accept=".json"><button data-control="external">Оценить файл</button></details><p class="muted">Qwen требует WebGPU и загрузки весов на устройство. Облачный режим передаёт выбранные транскрипты провайдеру.</p><p id="controlProgress" role="status">'+esc(progressText)+'</p></section>'+
     (last?'<section class="panel bench"><div class="rec-top"><h2>Протокол проверки</h2><button data-control="export">Скачать протокол</button><button data-control="submit">Скачать results.json</button></div><p>'+esc(last.method)+' · '+esc(new Date(last.created).toLocaleString('ru-RU'))+' · Диалогов: '+rows.length+'</p><div class="tablewrap"><table><thead><tr><th>Диалог</th><th>Язык</th><th>Балл</th><th>Грубая ошибка</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.conversation_id)+'</td><td>'+esc(r.language)+'</td><td>'+num(r.total)+'</td><td>'+(r.error?esc(r.error):r.gross?'Да':'Нет')+'</td></tr>').join('')+'</tbody></table></div></section><section class="panel bench"><h2>Сверка с эталоном</h2><p>Загрузите JSON-массив с полями conversation_id и total (число от 0 до 100). Сопоставление идёт по ID.</p><input id="truthFile" type="file" accept=".json" aria-label="Эталонные оценки"><div id="comparison">'+(comparison||'')+'</div></section>':'');
 }
 function controlRecords(data){
@@ -115,7 +115,8 @@ document.addEventListener('change',async e=>{
 });
 document.addEventListener('click',e=>{
  const act=e.target.closest('[data-control]')?.dataset.control;
- if(act==='run')runControl();
+ if(act==='run')runControl(true);
+ if(act==='external')runControl(false);
  if(act==='sample')runControl(true);
  if(act==='submit'&&db.control){
    try{downloadResult('results.json',submission(db.control))}catch(err){progress(err.message)}
@@ -152,7 +153,7 @@ function recordLink(r){
  return '<div class="criterion"><button data-record="'+index+'"><span>'+esc(r.title||r.conversation_id)+'<small>'+esc(r.conversation_id)+' · '+esc(r.language)+'</small></span><span>Открыть ↗</span></button></div>';
 }
 function extraPage(){
- if(page==='guide')return intro('ПОМОЩЬ','Как начать','Для учебной проверки всё уже загружено.')+'<section class="panel bench"><ol><li>Откройте «Контрольная выборка».</li><li>Оставьте «Правила чек-листа» и нажмите «Проверить 10 учебных диалогов».</li><li>Откройте разговор в очереди и нажмите критерий, чтобы увидеть объяснение и реплику.</li><li>В контрольной выборке нажмите «Скачать results.json» для выгрузки.</li></ol><button data-page="bench">Перейти к проверке</button><hr><h3>Откуда взять JSON для конкурса?</h3><p>Контрольный набор выдадут организаторы. В разделе «Контрольная выборка» выберите их файл и нажмите «Оценить выборку». Для тренировки используйте встроенный набор. Его JSON также можно скачать.</p><button data-control="download-sample">Скачать учебный JSON</button></section>';
+ if(page==='guide')return intro('ПОМОЩЬ','Как начать','Для учебной проверки всё уже загружено.')+'<section class="panel bench"><ol><li>Откройте «Контрольная выборка».</li><li>Оставьте «Правила чек-листа» и нажмите «Оценить встроенную базу».</li><li>Откройте разговор в очереди и нажмите критерий, чтобы увидеть объяснение и реплику.</li><li>В контрольной выборке нажмите «Скачать results.json» для выгрузки.</li></ol><button data-page="bench">Перейти к проверке</button><hr><h3>Откуда взять JSON для конкурса?</h3><p>Контрольный набор выдадут организаторы. В разделе «Контрольная выборка» выберите их файл и нажмите «Оценить выборку». Для тренировки используйте встроенный набор. Его JSON также можно скачать.</p><button data-control="download-sample">Скачать учебный JSON</button></section>';
  if(page==='library')return intro('БИБЛИОТЕКА','Учебная база','Десять вымышленных обращений на трёх языках.','<button data-control="download-sample">Скачать учебный JSON</button><button data-page="bench">Оценить базу</button>')+'<article class="panel">'+window.demoRecords.map(recordLink).join('')+'</article>';
  const assessed=db.records.filter(r=>db.runs[r.conversation_id]);
  if(page==='risk'){
@@ -174,4 +175,5 @@ document.addEventListener('click',e=>{
  if(e.target.closest('#navToggle'))document.body.classList.toggle('nav-open');
  if(e.target.closest('[data-page]'))document.body.classList.remove('nav-open');
 });
+
 

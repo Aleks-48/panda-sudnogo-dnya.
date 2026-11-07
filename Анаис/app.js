@@ -41,6 +41,8 @@ function render(){
 let localRecording;
 function callAudio(r,url){
  if(r.channel!=='voice call')return '';
+ const embedded=window.demoRecords.find(item=>item.conversation_id===r.conversation_id && item.audio_url?.endsWith('.wav') && JSON.stringify(item.transcript)===JSON.stringify(r.transcript));
+ if(embedded)return '<section class="panel bench"><h2>Запись звонка</h2><p>Учебная озвучка · '+r.transcript.length+' реплик</p><audio id="player" controls preload="metadata" src="'+esc(embedded.audio_url)+'"></audio></section>';
  const direct=url&&/\.(mp3|wav|ogg|m4a|aac|webm)(?:[?#]|$)/i.test(url);
  return '<section class="panel bench"><h2>Запись звонка</h2><p>Расшифровка организаторов · '+r.transcript.length+' реплик</p>'+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Открыть запись в плеере организаторов ↗</a></p>':'')+'<label>Выбрать аудиофайл этого звонка <input id="callFile" type="file" accept="audio/*"></label><audio id="player" controls preload="metadata" '+(direct?'src="'+esc(url)+'"':'hidden')+'></audio></section>';
 }
@@ -132,6 +134,7 @@ function modelDialog() {
    }catch(err){state.textContent=err.message;button.disabled=false}
  };
 }
+
 
 
 
