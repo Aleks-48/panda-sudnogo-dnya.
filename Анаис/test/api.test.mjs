@@ -21,5 +21,11 @@ test('импорт → версия → оценка → апелляция → 
  const state=(await call('state')).body;assert.equal(state.activeChecklistId,c.id);assert.equal(state.evaluations[0].originalScore.total,0);assert.equal(state.evaluations[0].finalScore.total,100);assert.equal(state.appeals[0].status,'resolved');
  assert.equal((await call('review',{appealId:a.id,action:'change',value:false,reason:'Повтор'})).status,400);
  const saved=JSON.parse(await readFile(join(dir,'state.json'),'utf8'));assert.equal(saved.evaluations[0].finalScore.total,100);
+ await call('demo',{});await call('demo',{});const demoState=(await call('state')).body;assert.equal(demoState.conversations.filter(c=>c.demo).length,4);
+ const demo=demoState.evaluations.find(e=>e.id==='fixture-demo-appeal-ru');assert.equal(demo.originalScore.total,92.31);
+ const appeal=(await call('appeals',{evaluationId:demo.id,criterionId:'c7',comment:'В m3 есть итог, помощь и прощание'})).body;
+ assert.equal((await call('review',{appealId:appeal.id,action:'change',value:true,reason:'Проверено по m3: все условия завершения выполнены',evidence:['m3']})).status,200);
+ const reviewed=(await call('state')).body.evaluations.find(e=>e.id===demo.id);assert.equal(reviewed.originalScore.total,92.31);assert.equal(reviewed.finalScore.total,100);
+ const csv=await fetch('http://127.0.0.1:3099/api/export.csv');assert.equal(csv.status,200);assert.match(await csv.text(),/demo-appeal-ru/);
  }finally{child.kill();}
 });

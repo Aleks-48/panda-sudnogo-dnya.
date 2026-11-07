@@ -1,3 +1,4 @@
+import {seedDemo,demoScenarios} from './demo.mjs';
 import {createHash} from 'node:crypto';
 import {evaluateModel,modelConfig} from './llm.mjs';
 import http from 'node:http';
@@ -33,13 +34,29 @@ async function body(req){let text='';for await(const chunk of req){text+=chunk;i
 function getEvaluation(id){const e=db.evaluations.find(x=>x.id===id);if(!e)throw Error('Оценка не найдена');return e;}
 const server=http.createServer(async(req,res)=>{try{
  const url=new URL(req.url,'http://localhost');
- if(req.method==='GET'&&url.pathname==='/api/state')return json(res,200,{...db,configured:modelConfig().configured,modelStatus:{provider:modelConfig().provider,model:modelConfig().model||null}});
+ if(req.method==='GET'&&url.pathname==='/api/state')return json(res,200,{...db,configured:modelConfig().configured,modelStatus:{provider:modelConfig().provider,model:modelConfig().model||null},demoScenarios:demoScenarios()});
+ if(req.method==='GET'&&url.pathname==='/api/export.csv'){
+ const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';
+ const rows=[['Диалог','Язык','Модель','Тип','Исходный балл','Финальный балл','Грубая ошибка','Дата'],...db.evaluations.map(e=>[e.conversationId,db.conversations.find(c=>c.conversation_id===e.conversationId)?.language,e.model,e.demo?'Учебная фикстура':e.model==='manual'?'Ручная':'API',e.originalScore.total,e.finalScore.total,e.finalScore.grossError?'Да':'Нет',e.createdAt])];
+ res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="cqa-results.csv"'});return res.end('\ufeff'+rows.map(row=>row.map(cell).join(';')).join('\r\n'));
+ }
  if(req.method==='GET'&&url.pathname==='/api/export'){res.setHeader('Content-Disposition','attachment; filename="cqa-export.json"');return json(res,200,db);}
  if(req.method==='POST'&&url.pathname.startsWith('/api/')){
  if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`)return json(res,403,{error:'Недопустимый источник запроса'});
  if(!req.headers['content-type']?.startsWith('application/json'))return json(res,415,{error:'Ожидается application/json'});
  const b=await body(req);let result;
- if(url.pathname==='/api/import'){
+ if(url.pathname==='/api/demo'){
+ result=seedDemo(db,b.newRun===true);
+ }else if(url.pathname==='/api/model/check'){
+ const config=modelConfig();
+ try{
+  const checklist={name:'Проверка подключения',precision:2,criteria:[{id:'connection',title:'Приветствие',instruction:'Оператор приветствует клиента и представляет себя.',type:'boolean',weight:1,allowNA:false}]};
+  const conversation={conversation_id:'connection-check',language:'RU',channel:'agent chat',transcript:[{id:'m0',speaker:'operator',timestamp:'00:00',text:'Здравствуйте! Я Алина, оператор поддержки.'}]};
+  const assessed=await evaluateModel(conversation,checklist);
+  db.integrationCheck={ok:true,model:config.model,checkedAt:new Date().toISOString(),message:'Реальный запрос к модели выполнен',elapsedMs:assessed.elapsedMs};
+ }catch(e){db.integrationCheck={ok:false,model:config.model||null,checkedAt:new Date().toISOString(),message:e.message};}
+ result=db.integrationCheck;
+ }else if(url.pathname==='/api/import'){
  let payload=b.payload;
  if(b.groupId){if(!process.env.DATASET_URL)throw Error('Задайте DATASET_URL на сервере');const target=new URL(process.env.DATASET_URL);target.searchParams.set('group_id',b.groupId);const r=await fetch(target,{signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error(`API набора: HTTP ${r.status}`);payload=await r.json();}
  const rows=normalizeRecords(payload);for(const row of rows){const old=db.conversations.find(x=>x.conversation_id===row.conversation_id);if(old&&(old.language!==row.language||old.channel!==row.channel||JSON.stringify(old.transcript)!==JSON.stringify(row.transcript)))throw Error('Импорт изменяет существующий диалог. Используйте новый conversation_id.');}
@@ -58,7 +75,7 @@ const server=http.createServer(async(req,res)=>{try{
  await save();return json(res,200,result);
  }
  if(req.method==='GET'){
- const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css']};const f=files[url.pathname];if(f){res.writeHead(200,{'Content-Type':`${f[1]}; charset=utf-8`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
+ const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css'],'/assets/pandas-logo.png':['public/assets/pandas-logo.png','image/png'],'/presentation.pptx':['presentation/Pandy_sudnogo_dnya_CQA.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation']};const f=files[url.pathname];if(f){if(url.pathname==='/presentation.pptx')res.setHeader('Content-Disposition','attachment; filename="Pandy_sudnogo_dnya_CQA.pptx"');res.writeHead(200,{'Content-Type':`${f[1]}${f[1].startsWith('text/')?'; charset=utf-8':''}`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
  }
  json(res,404,{error:'Не найдено'});
  }catch(e){console.error(e.message);json(res,400,{error:e.message});}});
