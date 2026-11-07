@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import sqlite3
 import uuid
@@ -8,7 +9,7 @@ import requests
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -497,6 +498,50 @@ def fetch_organizers_data(req: FetchDevRequest):
 
 # Serve frontend static files
 app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
+
+@app.get("/api/audio/{cid}")
+def stream_dialogue_audio(cid: str):
+    """
+    Serves cached MP3 recording if available locally, or extracts the direct MP3 stream
+    from the PowerPlatform/Dynamics HTML wrapper and caches it on the fly.
+    """
+    safe_cid = re.sub(r"[^a-zA-Z0-9_-]", "", cid)
+    audio_dir = Path(__file__).with_name("static") / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    local_mp3 = audio_dir / f"{safe_cid}.mp3"
+
+    if local_mp3.exists() and local_mp3.stat().st_size > 1000:
+        return FileResponse(local_mp3, media_type="audio/mpeg")
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT audio_url FROM dialogues WHERE conversation_id = ?", (cid,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row or not row["audio_url"]:
+        raise HTTPException(status_code=404, detail="Аудиозапись для данного диалога отсутствует")
+
+    raw_url = row["audio_url"]
+    try:
+        resp = requests.get(raw_url, timeout=15)
+        ctype = resp.headers.get("Content-Type", "")
+        if "audio" in ctype and len(resp.content) > 1000:
+            local_mp3.write_bytes(resp.content)
+            return FileResponse(local_mp3, media_type="audio/mpeg")
+
+        match = re.search(r'<source\s+src="([^"]+)"', resp.text)
+        if match:
+            direct_mp3_url = match.group(1).replace("&amp;", "&")
+            mp3_resp = requests.get(direct_mp3_url, timeout=25)
+            if mp3_resp.status_code == 200 and len(mp3_resp.content) > 1000:
+                local_mp3.write_bytes(mp3_resp.content)
+                return FileResponse(local_mp3, media_type="audio/mpeg")
+            return RedirectResponse(direct_mp3_url)
+    except Exception:
+        pass
+
+    return RedirectResponse(raw_url)
 
 @app.get("/")
 def serve_index():

@@ -1,6 +1,6 @@
 // ==========================================================================
 // FREEDOM BROKER CQA v2.0 — FRONTEND CONTROLLER
-// High-Density Enterprise UI (Tremor Raw + TanStack Table + cmdk patterns)
+// Real Audio Sync + Speech Synthesis + Dark/Light Theme + Step-by-Step UX
 // ==========================================================================
 
 let currentDialogueId = null;
@@ -8,17 +8,56 @@ let currentDialogueData = null;
 let currentEvaluationData = null;
 let activeAppealCriterion = null;
 let allCachedDialogues = [];
+let currentTranscriptOffsets = [];
 
 document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
     initTabs();
     initFilters();
     initActionButtons();
     initDropdownAndHotkeys();
+    initAudioSyncListener();
     loadStats();
     loadDialogues();
     loadCriteria();
     loadAppeals();
 });
+
+// 0. Theme Switcher (Dark Latverian Titanium <-> Light Executive Daylight)
+function initTheme() {
+    const saved = localStorage.getItem("cqa_theme") || "dark";
+    applyTheme(saved);
+
+    const btn = document.getElementById("btn-theme-toggle");
+    if (btn) {
+        btn.addEventListener("click", () => {
+            const isLight = document.documentElement.classList.contains("light");
+            applyTheme(isLight ? "dark" : "light");
+        });
+    }
+}
+
+function applyTheme(mode) {
+    const html = document.documentElement;
+    const icon = document.getElementById("theme-icon");
+    const label = document.getElementById("theme-label");
+    const logo = document.getElementById("brand-logo-img");
+
+    if (mode === "light") {
+        html.classList.remove("dark");
+        html.classList.add("light");
+        if (icon) icon.textContent = "☾";
+        if (label) label.textContent = "Темная";
+        if (logo) logo.src = "/static/freedom_logo.svg";
+    } else {
+        html.classList.remove("light");
+        html.classList.add("dark");
+        if (icon) icon.textContent = "☀";
+        if (label) label.textContent = "Светлая";
+        if (logo) logo.src = "/static/freedom_logo_light.svg";
+    }
+    localStorage.setItem("cqa_theme", mode);
+}
 
 // 1. Tab Navigation & Keyboard Shortcuts (1, 2, 3)
 function initTabs() {
@@ -80,6 +119,13 @@ function initActionButtons() {
             openAppealModal(null, null);
         });
     }
+
+    const speakBtn = document.getElementById("btn-speak-selection");
+    if (speakBtn) {
+        speakBtn.addEventListener("click", () => {
+            speakCurrentDialogueExcerpt();
+        });
+    }
 }
 
 // 3. System Dropdown & Cmd+K Command Palette
@@ -114,9 +160,9 @@ function initDropdownAndHotkeys() {
         if (e.key === "Escape") {
             ["cmdk-modal", "appeal-modal", "decision-modal", "criterion-modal"].forEach(closeModal);
             closeDropdowns();
+            if ("speechSynthesis" in window) window.speechSynthesis.cancel();
             return;
         }
-        // Quick tab switching (1, 2, 3) when not typing in an input
         const tag = (document.activeElement && document.activeElement.tagName) || "";
         if (!["INPUT", "TEXTAREA", "SELECT"].includes(tag)) {
             if (e.key === "1") document.querySelector('[data-tab="dialogues-tab"]')?.click();
@@ -148,10 +194,10 @@ function renderCmdkResults(query) {
     container.innerHTML = "";
 
     const quickCommands = [
-        { label: "Фильтр: Показать только фатальные ошибки (FATAL)", hint: "Критерий №8", action: () => { setKpiFilter("fatal"); closeModal("cmdk-modal"); } },
-        { label: "Перейти в Центр апелляций", hint: "Вкладка 2", action: () => { document.querySelector('[data-tab="appeals-tab"]')?.click(); closeModal("cmdk-modal"); } },
-        { label: "Открыть Регламент (Матрица 8 критериев)", hint: "Вкладка 3", action: () => { document.querySelector('[data-tab="checklist-tab"]')?.click(); closeModal("cmdk-modal"); } },
-        { label: "Сбросить все фильтры диалогов", hint: "Все 65", action: () => { setKpiFilter(""); closeModal("cmdk-modal"); } }
+        { label: "🎙 Показать только Звонки с реальной аудиозаписью (5)", hint: "Аудио MP3", action: () => { setChannelQuickFilter("voice call"); closeModal("cmdk-modal"); } },
+        { label: "⚠️ Фильтр: Показать только фатальные ошибки (FATAL)", hint: "Критерий №8", action: () => { setKpiFilter("fatal"); closeModal("cmdk-modal"); } },
+        { label: "☀/☾ Переключить тему (Темная / Светлая)", hint: "Тема UI", action: () => { document.getElementById("btn-theme-toggle")?.click(); closeModal("cmdk-modal"); } },
+        { label: "Сбросить все фильтры диалогов", hint: "Все 65", action: () => { setChannelQuickFilter(""); setKpiFilter(""); closeModal("cmdk-modal"); } }
     ];
 
     quickCommands.filter(c => !q || c.label.toLowerCase().includes(q)).forEach(cmd => {
@@ -170,8 +216,9 @@ function renderCmdkResults(query) {
         const div = document.createElement("div");
         div.className = "cmdk-item";
         const scoreStr = d.has_fatal_flaw ? "FATAL" : (d.total_score !== null ? `${Number(d.total_score).toFixed(1)}%` : "--");
+        const chIcon = d.channel === "voice call" ? "🎙 Звонок (MP3)" : "💬 Чат";
         div.innerHTML = `
-            <span class="tabular-nums"><strong>${d.conversation_id}</strong> · ${d.language} · ${d.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
+            <span class="tabular-nums"><strong>${d.conversation_id}</strong> · ${d.language} · ${chIcon}</span>
             <span class="mono-hint tabular-nums">${scoreStr}</span>
         `;
         div.addEventListener("click", () => {
@@ -183,14 +230,29 @@ function renderCmdkResults(query) {
     });
 }
 
-// 4. Filters & Interactive Tremor KPI Cards
+// 4. Filters, Channel Quick Pills & Interactive Tremor KPI Cards
 function initFilters() {
-    document.getElementById("filter-lang").addEventListener("change", loadDialogues);
-    document.getElementById("filter-channel").addEventListener("change", loadDialogues);
+    const filterLang = document.getElementById("filter-lang");
+    const filterChannel = document.getElementById("filter-channel");
     const filterStatus = document.getElementById("filter-status");
+
+    filterLang.addEventListener("change", loadDialogues);
+    filterChannel.addEventListener("change", () => {
+        syncChannelPills(filterChannel.value);
+        loadDialogues();
+    });
+
     if (filterStatus) filterStatus.addEventListener("change", () => {
         syncKpiActiveCards(filterStatus.value);
         loadDialogues();
+    });
+
+    // Quick Channel Segmented Pills (Все / Звонки с аудио / Чаты)
+    document.querySelectorAll(".channel-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+            const ch = pill.getAttribute("data-channel") || "";
+            setChannelQuickFilter(ch);
+        });
     });
 
     const searchInput = document.getElementById("filter-search");
@@ -222,8 +284,9 @@ function initFilters() {
     if (kpiTotal) {
         kpiTotal.addEventListener("click", () => {
             document.querySelector('[data-tab="dialogues-tab"]')?.click();
-            document.getElementById("filter-lang").value = "";
-            document.getElementById("filter-channel").value = "";
+            filterLang.value = "";
+            filterChannel.value = "";
+            syncChannelPills("");
             if (searchInput) searchInput.value = "";
             setKpiFilter("");
         });
@@ -236,6 +299,20 @@ function initFilters() {
             if (appealsTabBtn) appealsTabBtn.click();
         });
     }
+}
+
+function setChannelQuickFilter(channelVal) {
+    const filterChannel = document.getElementById("filter-channel");
+    if (filterChannel) filterChannel.value = channelVal;
+    syncChannelPills(channelVal);
+    loadDialogues(true);
+}
+
+function syncChannelPills(channelVal) {
+    document.querySelectorAll(".channel-pill").forEach(pill => {
+        const val = pill.getAttribute("data-channel") || "";
+        pill.classList.toggle("active", val === channelVal);
+    });
 }
 
 function setKpiFilter(statusValue) {
@@ -279,8 +356,8 @@ async function loadStats() {
     }
 }
 
-// 6. Load & Render High-Density Dialogue Table
-async function loadDialogues() {
+// 6. Load & Render High-Density Dialogue Table (Voice Calls Prioritized First!)
+async function loadDialogues(autoSelectFirst = false) {
     const lang = document.getElementById("filter-lang").value;
     const channel = document.getElementById("filter-channel").value;
     const filterStatus = document.getElementById("filter-status");
@@ -294,11 +371,19 @@ async function loadDialogues() {
     try {
         const res = await fetch(url);
         const dialogues = await res.json();
+
+        // Sort so voice calls with real audio appear at the very top when viewing all
+        dialogues.sort((a, b) => {
+            const aVoice = a.channel === "voice call" ? 0 : 1;
+            const bVoice = b.channel === "voice call" ? 0 : 1;
+            if (aVoice !== bVoice) return aVoice - bVoice;
+            return a.conversation_id.localeCompare(b.conversation_id);
+        });
+
         allCachedDialogues = dialogues;
         renderDialoguesList(dialogues);
 
-        // Auto-select first dialogue on initial load so inspector is immediately populated
-        if (!currentDialogueId && dialogues.length > 0) {
+        if ((!currentDialogueId || autoSelectFirst) && dialogues.length > 0) {
             selectDialogue(dialogues[0].conversation_id);
         }
     } catch (e) {
@@ -339,7 +424,10 @@ function renderDialoguesList(dialogues) {
             }
         }
 
-        const channelLabel = d.channel === "agent chat" ? "Чат" : "Звонок";
+        const isVoice = d.channel === "voice call";
+        const channelLabel = isVoice
+            ? `<span class="voice-call-tag">🎙 Звонок · Реальное аудио</span>`
+            : `💬 Чат поддержки`;
 
         item.innerHTML = `
             <div class="diag-id-cell">
@@ -362,10 +450,11 @@ function renderDialoguesList(dialogues) {
     });
 }
 
-// 7. Select Single Dialogue & Render Split-Screen Inspector
+// 7. Select Single Dialogue & Render Split-Screen Inspector with Audio Sync
 async function selectDialogue(cid) {
     currentDialogueId = cid;
     renderDialoguesList(allCachedDialogues);
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
     try {
         const res = await fetch(`/api/dialogues/${cid}`);
@@ -380,42 +469,84 @@ async function selectDialogue(cid) {
     }
 }
 
+function parseTimestampMs(ts) {
+    if (!ts) return null;
+    const d = Date.parse(ts);
+    if (!isNaN(d)) return d;
+    return null;
+}
+
+function formatSec(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
+}
+
 function renderDialogueDetails(dialogue) {
     document.getElementById("current-dialogue-title").textContent = dialogue.conversation_id;
     document.getElementById("btn-run-eval").style.display = "inline-flex";
 
+    const isVoice = dialogue.channel === "voice call" || Boolean(dialogue.audio_url);
+    const speakBtn = document.getElementById("btn-speak-selection");
+    if (speakBtn) {
+        speakBtn.style.display = isVoice ? "none" : "inline-flex";
+    }
+
     const badgesContainer = document.getElementById("current-dialogue-badges");
     badgesContainer.innerHTML = `
         <span class="badge badge-${dialogue.language.toLowerCase()}">${dialogue.language}</span>
-        <span class="badge ${dialogue.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${dialogue.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
+        <span class="badge ${isVoice ? 'badge-call' : 'badge-chat'}">${isVoice ? '🎙 Голосовой звонок (MP3)' : '💬 Чат'}</span>
     `;
 
+    // Real MP3 Audio player via our backend proxy /api/audio/{cid}
     const audioContainer = document.getElementById("audio-player-container");
     const audioPlayer = document.getElementById("voice-audio-player");
-    if (dialogue.audio_url) {
+    if (isVoice) {
         audioContainer.style.display = "flex";
-        audioPlayer.src = dialogue.audio_url;
+        audioPlayer.src = `/api/audio/${encodeURIComponent(dialogue.conversation_id)}`;
     } else {
         audioContainer.style.display = "none";
+        audioPlayer.pause();
         audioPlayer.src = "";
     }
 
+    // Calculate relative audio offset (in seconds) for each transcript message
     const transcriptBody = document.getElementById("transcript-body");
     transcriptBody.innerHTML = "";
+    currentTranscriptOffsets = [];
+
+    let firstMs = null;
+    dialogue.transcript.forEach(msg => {
+        const ms = parseTimestampMs(msg.timestamp);
+        if (ms !== null && (firstMs === null || ms < firstMs)) {
+            firstMs = ms;
+        }
+    });
 
     dialogue.transcript.forEach((msg, idx) => {
         const row = document.createElement("div");
-        row.className = `msg-row msg-${msg.speaker}`;
+        const ms = parseTimestampMs(msg.timestamp);
+        const offsetSec = (firstMs !== null && ms !== null) ? Math.max(0, (ms - firstMs) / 1000) : idx * 4;
+        currentTranscriptOffsets.push({ idx, offsetSec, element: row });
+
+        row.className = `msg-row msg-${msg.speaker} ${isVoice ? 'clickable-audio-row' : ''}`;
         row.id = `msg-line-${idx}`;
-        row.setAttribute("data-ts", msg.timestamp);
-        row.setAttribute("data-text", msg.text);
+        row.setAttribute("data-ts", msg.timestamp || "");
+        row.setAttribute("data-offset", String(offsetSec));
+        row.setAttribute("data-text", msg.text || "");
 
         let speakerName = "Клиент";
         if (msg.speaker === "operator") speakerName = "Оператор Freedom Broker";
-        if (msg.speaker === "bot") speakerName = "Автоинформатор / Бот";
+        if (msg.speaker === "bot") speakerName = "Автоинформатор IVR";
         if (msg.speaker === "system") speakerName = "Система";
 
         const lineNum = String(idx + 1).padStart(2, "0");
+        const relTimeStr = formatSec(offsetSec);
+
+        const rightControlHtml = isVoice
+            ? `<span class="msg-seek-pill tabular-nums" title="Кликните, чтобы перемотать реальную запись на ${relTimeStr}">▶ ${relTimeStr}</span>`
+            : `<button type="button" class="msg-tts-btn" onclick="speakSingleLine(event, '${encodeURIComponent(msg.text)}', '${dialogue.language}')" title="Озвучить эту реплику">🔊</button>`;
 
         row.innerHTML = `
             <div class="msg-header">
@@ -423,12 +554,98 @@ function renderDialogueDetails(dialogue) {
                     <span class="msg-index tabular-nums">#${lineNum}</span>
                     <span class="speaker-${msg.speaker}">${speakerName}</span>
                 </div>
-                <span class="msg-time tabular-nums">${msg.timestamp || ""}</span>
+                <div class="msg-header-right">
+                    ${rightControlHtml}
+                </div>
             </div>
             <div class="msg-text">${msg.text}</div>
         `;
+
+        if (isVoice) {
+            row.addEventListener("click", () => {
+                seekAudioToSecond(offsetSec, row);
+            });
+        }
+
         transcriptBody.appendChild(row);
     });
+}
+
+// Sync Audio Player with Transcript Rows
+function seekAudioToSecond(offsetSec, rowElement) {
+    const audioPlayer = document.getElementById("voice-audio-player");
+    if (!audioPlayer || !audioPlayer.src) return;
+
+    document.querySelectorAll(".msg-row").forEach(r => r.classList.remove("playing-now"));
+    if (rowElement) rowElement.classList.add("playing-now");
+
+    const applySeek = () => {
+        if (audioPlayer.duration && offsetSec < audioPlayer.duration) {
+            audioPlayer.currentTime = offsetSec;
+        } else {
+            audioPlayer.currentTime = 0;
+        }
+        audioPlayer.play().catch(() => {});
+    };
+
+    if (audioPlayer.readyState >= 1) {
+        applySeek();
+    } else {
+        audioPlayer.addEventListener("loadedmetadata", applySeek, { once: true });
+        audioPlayer.load();
+    }
+}
+
+function initAudioSyncListener() {
+    const audioPlayer = document.getElementById("voice-audio-player");
+    const timeInd = document.getElementById("audio-time-indicator");
+    if (!audioPlayer) return;
+
+    audioPlayer.addEventListener("timeupdate", () => {
+        const cur = audioPlayer.currentTime || 0;
+        if (timeInd) timeInd.textContent = formatSec(cur);
+
+        // Highlight active transcript line matching current audio second
+        let activeItem = null;
+        for (let i = 0; i < currentTranscriptOffsets.length; i++) {
+            if (currentTranscriptOffsets[i].offsetSec <= cur + 0.5) {
+                activeItem = currentTranscriptOffsets[i];
+            } else {
+                break;
+            }
+        }
+        document.querySelectorAll(".msg-row.playing-now").forEach(el => el.classList.remove("playing-now"));
+        if (activeItem && activeItem.element) {
+            activeItem.element.classList.add("playing-now");
+        }
+    });
+}
+
+// Web Speech Synthesis for Chat Dialogues (when user wants text spoken aloud)
+window.speakSingleLine = function(e, encodedText, lang) {
+    e.stopPropagation();
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(decodeURIComponent(encodedText));
+    utter.lang = lang === "EN" ? "en-US" : (lang === "KZ" ? "kk-KZ" : "ru-RU");
+    utter.rate = 1.05;
+    window.speechSynthesis.speak(utter);
+};
+
+function speakCurrentDialogueExcerpt() {
+    if (!currentDialogueData || !("speechSynthesis" in window)) return;
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        return;
+    }
+    const text = currentDialogueData.transcript
+        .filter(m => m.speaker !== "system")
+        .slice(0, 6)
+        .map(m => m.text)
+        .join(". ");
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = currentDialogueData.language === "EN" ? "en-US" : "ru-RU";
+    window.speechSynthesis.speak(utter);
 }
 
 // 8. Render 8-Criteria Scorecard
@@ -513,7 +730,7 @@ function renderScorecard(evalData) {
             quoteBtnHtml = `
                 <button class="crit-quote-btn" onclick="scrollToQuote('${encodeURIComponent(crit.quote)}', '${crit.timestamp || ""}')">
                     <span class="mono-hint">ЦИТАТА:</span>
-                    <span>«${crit.quote}» ${crit.timestamp ? `<span class="mono-hint tabular-nums">[${crit.timestamp}]</span>` : ''}</span>
+                    <span>«${crit.quote}»</span>
                 </button>
             `;
         }
@@ -537,7 +754,7 @@ function renderScorecard(evalData) {
     });
 }
 
-// 9. Scroll & Highlight Verbatim Quote in Transcript
+// 9. Scroll & Highlight Verbatim Quote in Transcript (+ Auto-Seek Audio if Voice Call!)
 window.scrollToQuote = function(encodedQuote, timestamp) {
     const quote = decodeURIComponent(encodedQuote).toLowerCase();
     const rows = document.querySelectorAll(".msg-row");
@@ -558,6 +775,10 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
     if (targetRow) {
         targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
         targetRow.classList.add("msg-highlight");
+        const offsetSec = parseFloat(targetRow.getAttribute("data-offset") || "0");
+        if (currentDialogueData && currentDialogueData.channel === "voice call") {
+            seekAudioToSecond(offsetSec, targetRow);
+        }
         setTimeout(() => {
             targetRow.classList.remove("msg-highlight");
         }, 3500);

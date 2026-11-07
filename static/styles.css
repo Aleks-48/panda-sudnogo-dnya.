@@ -1,18 +1,18 @@
 /* ==========================================================================
-   FREEDOM BROKER CQA v2.0 — LATVERIAN TITANIUM & SOVEREIGN EMERALD
+   FREEDOM BROKER CQA v2.0 — DUAL THEME (DARK TITANIUM & EXECUTIVE LIGHT)
    Architecture: Tremor Raw + shadcn/ui + Linear / Bloomberg Terminal
-   Zero AI-Slop: Subpixel 1px borders, tabular-nums, high-density layout
+   Zero AI-Slop: Subpixel 1px borders, tabular-nums, step-by-step clarity
    ========================================================================== */
 
 :root {
-    /* Базовая темная титановая гамма (вместо кислотных градиентов) */
+    /* DARK THEME (DEFAULT): Latverian Titanium & Sovereign Emerald */
     --bg-primary: #090d0b;           /* Глубокий оружейный титан */
     --bg-surface: #0f1713;           /* Карточки и сайдбар */
     --bg-surface-elevated: #15221b;  /* Выделенные строки и ховеры */
     --bg-surface-active: #192b22;    /* Выбранная строка */
     --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --border-emerald: rgba(16, 185, 129, 0.22);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    --border-emerald: rgba(16, 185, 129, 0.28);
 
     /* Фирменный изумрудный акцент Freedom / Sovereign Emerald */
     --brand-emerald: #10b981;
@@ -22,11 +22,11 @@
     /* Статусы оценки */
     --status-fatal-bg: rgba(239, 68, 68, 0.12);
     --status-fatal-text: #f87171;
-    --status-fatal-border: rgba(239, 68, 68, 0.3);
+    --status-fatal-border: rgba(239, 68, 68, 0.32);
 
     --status-warning-bg: rgba(245, 158, 11, 0.12);
     --status-warning-text: #fbbf24;
-    --status-warning-border: rgba(245, 158, 11, 0.28);
+    --status-warning-border: rgba(245, 158, 11, 0.3);
 
     --status-success-bg: rgba(16, 185, 129, 0.12);
     --status-success-text: #34d399;
@@ -40,6 +40,11 @@
     --text-secondary: #94a39c;
     --text-muted: #5e6d66;
 
+    /* Реплики оператора и клиента */
+    --msg-op-bg: #0d1712;
+    --msg-client-bg: #0f1713;
+    --audio-filter: invert(0.9) hue-rotate(140deg);
+
     /* Обратная совместимость с JS-токенами */
     --fb-green: #10b981;
     --danger: #f87171;
@@ -52,6 +57,50 @@
     /* Строгие корпоративные скругления (4px / 6px) */
     --radius-sm: 4px;
     --radius-md: 6px;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES (html.light — Clean Executive Daylight)
+   ========================================================================== */
+html.light {
+    --bg-primary: #f4f6f5;           /* Светлый банковский платиновый фон */
+    --bg-surface: #ffffff;           /* Чистые белые панели и таблицы */
+    --bg-surface-elevated: #edf2ef;  /* Мягкий ховер строк */
+    --bg-surface-active: #e2efe8;    /* Активная выбранная строка */
+    --border-subtle: #dde3df;
+    --border-strong: #c3cec7;
+    --border-emerald: rgba(5, 150, 105, 0.38);
+
+    --brand-emerald: #059669;
+    --brand-emerald-dark: #047857;
+    --brand-emerald-glow: rgba(5, 150, 105, 0.10);
+
+    --status-fatal-bg: #fef2f2;
+    --status-fatal-text: #dc2626;
+    --status-fatal-border: #fecaca;
+
+    --status-warning-bg: #fffbeb;
+    --status-warning-text: #b45309;
+    --status-warning-border: #fde68a;
+
+    --status-success-bg: #ecfdf5;
+    --status-success-text: #047857;
+    --status-success-border: #a7f3d0;
+
+    --status-na-bg: #f1f5f9;
+    --status-na-text: #475569;
+
+    --text-primary: #0f1713;
+    --text-secondary: #47554e;
+    --text-muted: #64746c;
+
+    --msg-op-bg: #f0fdf4;
+    --msg-client-bg: #ffffff;
+    --audio-filter: none;
+
+    --fb-green: #059669;
+    --danger: #dc2626;
+    --success: #047857;
 }
 
 * {
@@ -71,6 +120,7 @@ html, body {
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .tabular-nums {
@@ -87,11 +137,8 @@ html, body {
     background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-    background: #1f2e26;
+    background: var(--border-strong);
     border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #2c4237;
 }
 
 .app-container {
@@ -101,8 +148,22 @@ html, body {
     background-color: var(--bg-primary);
 }
 
+/* Индикатор шага (ШАГ 1, ШАГ 2, ШАГ 3) для прозрачной навигации */
+.step-num {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 1px 5px;
+    margin-right: 4px;
+    border-radius: 3px;
+    background-color: var(--brand-emerald-glow);
+    color: var(--brand-emerald);
+    border: 1px solid var(--border-emerald);
+}
+
 /* ==========================================================================
-   1. HEADER / TOPBAR (Linear & Bloomberg Terminal Density)
+   1. HEADER / TOPBAR
    ========================================================================== */
 .d365-header {
     background-color: var(--bg-surface);
@@ -189,7 +250,7 @@ html, body {
     letter-spacing: -0.01em;
 }
 
-/* Навигационные вкладки (shadcn Tabs style) */
+/* Навигационные вкладки */
 .header-nav {
     display: flex;
     align-items: center;
@@ -218,12 +279,12 @@ html, body {
 
 .nav-tab:hover {
     color: var(--text-primary);
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: var(--bg-surface-elevated);
 }
 
 .nav-tab.active {
     color: var(--text-primary);
-    background-color: var(--bg-surface-elevated);
+    background-color: var(--bg-surface);
     border-color: var(--border-emerald);
 }
 
@@ -232,7 +293,7 @@ html, body {
     font-size: 10px;
     padding: 0 4px;
     border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--bg-surface-elevated);
     color: var(--text-muted);
     border: 1px solid var(--border-subtle);
 }
@@ -253,7 +314,7 @@ html, body {
     border-radius: var(--radius-sm);
 }
 
-/* Правый блок хедера: Cmd+K + компактное меню операций */
+/* Правый блок хедера */
 .header-actions {
     display: flex;
     align-items: center;
@@ -264,7 +325,7 @@ html, body {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
@@ -311,7 +372,7 @@ kbd {
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     padding: 4px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
     z-index: 100;
 }
 
@@ -367,7 +428,7 @@ kbd {
 .kpi-bar {
     background-color: var(--bg-primary);
     border-bottom: 1px solid var(--border-subtle);
-    padding: 10px 16px;
+    padding: 8px 16px;
     flex-shrink: 0;
 }
 
@@ -381,7 +442,7 @@ kbd {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 10px 14px;
+    padding: 9px 14px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -392,7 +453,7 @@ kbd {
 
 .kpi-item:hover {
     border-color: var(--border-strong);
-    background-color: #121c17;
+    background-color: var(--bg-surface-elevated);
 }
 
 .kpi-item.active-filter {
@@ -412,7 +473,7 @@ kbd {
 
 .kpi-label {
     font-size: 11.5px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
 }
 
@@ -469,26 +530,18 @@ kbd {
     color: var(--text-muted);
 }
 
-.highlight-score {
-    color: var(--status-success-text);
-}
-
-.danger-score {
-    color: var(--status-fatal-text);
-}
-
-.warning-score {
-    color: var(--status-warning-text);
-}
+.highlight-score { color: var(--status-success-text); }
+.danger-score { color: var(--status-fatal-text); }
+.warning-score { color: var(--status-warning-text); }
 
 /* Tremor Micro Tracker Bar */
 .tremor-bar {
     height: 3px;
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--border-subtle);
     border-radius: 2px;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 .tremor-bar span {
@@ -522,12 +575,12 @@ kbd {
 
 .workspace-layout {
     display: grid;
-    grid-template-columns: 340px 1fr 440px;
+    grid-template-columns: 350px 1fr 440px;
     height: 100%;
     overflow: hidden;
 }
 
-/* Левая колонка: Таблица диалогов (TanStack Table style) */
+/* Левая колонка: Таблица диалогов */
 .sidebar-list {
     background-color: var(--bg-surface);
     border-right: 1px solid var(--border-subtle);
@@ -554,8 +607,8 @@ kbd {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
 }
 
 .mono-tag {
@@ -566,6 +619,42 @@ kbd {
     border: 1px solid var(--border-subtle);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
+}
+
+/* Сегментированный переключатель: Все / Звонки с аудио / Чаты */
+.channel-quick-pills {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 4px;
+    background-color: var(--bg-primary);
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+.channel-pill {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+
+.channel-pill:hover {
+    color: var(--text-primary);
+}
+
+.channel-pill.active {
+    background-color: var(--bg-surface);
+    color: var(--brand-emerald);
+    border-color: var(--border-emerald);
+    font-weight: 600;
 }
 
 .filter-row {
@@ -604,7 +693,7 @@ kbd {
 
 .table-col-headers {
     display: grid;
-    grid-template-columns: 1fr 56px 92px;
+    grid-template-columns: 1fr 56px 96px;
     padding: 6px 12px;
     background-color: var(--bg-primary);
     border-bottom: 1px solid var(--border-subtle);
@@ -626,7 +715,7 @@ kbd {
 /* Строки диалогов высокой плотности */
 .dialogue-item {
     display: grid;
-    grid-template-columns: 1fr 56px 92px;
+    grid-template-columns: 1fr 56px 96px;
     align-items: center;
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-subtle);
@@ -641,8 +730,8 @@ kbd {
 
 .dialogue-item.active {
     background-color: var(--bg-surface-active);
-    border-left: 2px solid var(--brand-emerald);
-    padding-left: 10px;
+    border-left: 3px solid var(--brand-emerald);
+    padding-left: 9px;
 }
 
 .diag-id-cell {
@@ -658,14 +747,19 @@ kbd {
     font-weight: 600;
     font-size: 12px;
     color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .diag-channel-sub {
     font-size: 11px;
     color: var(--text-muted);
+}
+
+.voice-call-tag {
+    color: var(--status-warning-text);
+    font-weight: 500;
 }
 
 .diag-lang-cell {
@@ -710,7 +804,7 @@ kbd {
 }
 
 /* ==========================================================================
-   4. MIDDLE & RIGHT PANELS (Split-Screen Transcript & 8-Criteria Scorecard)
+   4. MIDDLE & RIGHT PANELS (Split-Screen Transcript & Real Audio Player)
    ========================================================================== */
 .transcript-section {
     height: 100%;
@@ -747,14 +841,22 @@ kbd {
     flex-shrink: 0;
 }
 
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .card-eyebrow {
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: var(--text-muted);
     text-transform: uppercase;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
 }
 
 .dialogue-title-row {
@@ -774,7 +876,7 @@ kbd {
     gap: 5px;
 }
 
-/* Моноширинные теги (shadcn Badge pattern) */
+/* Моноширинные теги */
 .badge {
     font-family: var(--font-mono);
     font-size: 10.5px;
@@ -786,36 +888,59 @@ kbd {
     color: var(--text-secondary);
 }
 
-.badge-ru { color: #93c5fd; border-color: rgba(147, 197, 253, 0.22); background: rgba(59, 130, 246, 0.1); }
-.badge-kz { color: #34d399; border-color: var(--border-emerald); background: var(--brand-emerald-glow); }
-.badge-en { color: #fde68a; border-color: rgba(253, 230, 138, 0.22); background: rgba(245, 158, 11, 0.1); }
+.badge-ru { color: #3b82f6; border-color: rgba(59, 130, 246, 0.28); background: rgba(59, 130, 246, 0.1); }
+.badge-kz { color: var(--brand-emerald); border-color: var(--border-emerald); background: var(--brand-emerald-glow); }
+.badge-en { color: var(--status-warning-text); border-color: var(--status-warning-border); background: var(--status-warning-bg); }
 .badge-chat { color: var(--text-secondary); }
 .badge-call { color: var(--status-warning-text); border-color: var(--status-warning-border); background: var(--status-warning-bg); }
 
+/* Панель реальной аудиозаписи звонка */
 .audio-banner {
-    background-color: var(--bg-surface);
-    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-emerald);
     padding: 8px 16px;
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.audio-top-row {
+    display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .audio-info {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.audio-live-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background-color: var(--status-success-bg);
+    color: var(--status-success-text);
+    border: 1px solid var(--status-success-border);
+}
+
+.audio-sync-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
 }
 
 .audio-banner audio {
-    height: 28px;
-    flex: 1;
-    filter: invert(0.9) hue-rotate(140deg);
+    height: 32px;
+    width: 100%;
+    filter: var(--audio-filter);
 }
 
-/* Стенограмма диалога с номерами реплик (#01, #02...) */
+/* Стенограмма диалога с номерами реплик и синхронизацией со звуком */
 .transcript-messages {
     flex: 1;
     overflow-y: auto;
@@ -832,23 +957,36 @@ kbd {
     padding: 10px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-subtle);
-    background-color: var(--bg-surface);
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    background-color: var(--msg-client-bg);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.msg-row.clickable-audio-row {
+    cursor: pointer;
+}
+
+.msg-row.clickable-audio-row:hover {
+    border-color: var(--border-emerald);
+}
+
+.msg-row.playing-now {
+    border-color: var(--brand-emerald) !important;
+    box-shadow: inset 0 0 0 1px var(--brand-emerald);
 }
 
 .msg-operator {
-    border-left: 2px solid var(--brand-emerald);
-    background-color: #0d1612;
+    border-left: 3px solid var(--brand-emerald);
+    background-color: var(--msg-op-bg);
 }
 
 .msg-client {
-    border-left: 2px solid #475569;
-    background-color: var(--bg-surface);
+    border-left: 3px solid #64748b;
+    background-color: var(--msg-client-bg);
 }
 
 .msg-bot {
-    border-left: 2px dashed var(--status-warning-text);
-    background-color: rgba(245, 158, 11, 0.04);
+    border-left: 3px dashed var(--status-warning-text);
+    background-color: var(--status-warning-bg);
 }
 
 .msg-system {
@@ -882,13 +1020,45 @@ kbd {
     font-size: 10.5px;
     color: var(--text-muted);
     padding: 0 4px;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--bg-surface-elevated);
     border-radius: 3px;
 }
 
 .speaker-operator { color: var(--brand-emerald); font-weight: 600; font-size: 11.5px; }
-.speaker-client { color: #cbd5e1; font-weight: 600; font-size: 11.5px; }
+.speaker-client { color: var(--text-primary); font-weight: 600; font-size: 11.5px; }
 .speaker-bot { color: var(--status-warning-text); font-weight: 600; font-size: 11.5px; }
+
+.msg-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.msg-seek-pill {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--brand-emerald);
+    background-color: var(--brand-emerald-glow);
+    border: 1px solid var(--border-emerald);
+    padding: 0 5px;
+    border-radius: 3px;
+}
+
+.msg-tts-btn {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 0 5px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.msg-tts-btn:hover {
+    color: var(--brand-emerald);
+    border-color: var(--border-emerald);
+}
 
 .msg-time {
     font-family: var(--font-mono);
@@ -906,9 +1076,9 @@ kbd {
 
 /* Подсветка реплики при клике на цитату нарушения */
 .msg-highlight {
-    background-color: rgba(239, 68, 68, 0.14) !important;
+    background-color: var(--status-fatal-bg) !important;
     border-color: var(--status-fatal-text) !important;
-    box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.35);
+    box-shadow: inset 0 0 0 1px var(--status-fatal-border);
 }
 
 /* ==========================================================================
@@ -947,8 +1117,8 @@ kbd {
 .alert-na {
     background-color: rgba(59, 130, 246, 0.08);
     border: 1px solid rgba(59, 130, 246, 0.25);
-    border-left: 3px solid #60a5fa;
-    color: #93c5fd;
+    border-left: 3px solid #3b82f6;
+    color: var(--text-secondary);
     padding: 8px 12px;
     font-size: 11.5px;
     margin: 8px 12px 0;
@@ -981,11 +1151,11 @@ kbd {
 
 .crit-card.fatal-active {
     border-color: var(--status-fatal-border);
-    background-color: rgba(239, 68, 68, 0.05);
+    background-color: var(--status-fatal-bg);
 }
 
 .crit-card.na-active {
-    opacity: 0.72;
+    opacity: 0.75;
 }
 
 .crit-header {
@@ -1046,7 +1216,6 @@ kbd {
     background-color: var(--bg-surface-elevated);
 }
 
-/* Ссылка на оспаривание в карточке критерия — деликатная, не перегружающая UI */
 .crit-actions {
     display: flex;
     justify-content: flex-end;
@@ -1156,7 +1325,6 @@ kbd {
     height: 100%;
 }
 
-/* Таблица апелляций (shadcn Data Table style) */
 .table-responsive {
     overflow-x: auto;
     flex: 1;
@@ -1192,7 +1360,6 @@ kbd {
     background-color: var(--bg-surface-elevated);
 }
 
-/* Матрица критериев */
 .criteria-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1217,7 +1384,7 @@ kbd {
 }
 
 /* ==========================================================================
-   7. BUTTONS (Strict Enterprise Components — No Cartoon Pills)
+   7. BUTTONS
    ========================================================================== */
 .btn {
     padding: 5px 11px;
@@ -1246,7 +1413,6 @@ kbd {
 
 .btn-primary:hover {
     background-color: var(--brand-emerald);
-    color: #04130d;
 }
 
 .btn-secondary {
@@ -1257,7 +1423,6 @@ kbd {
 
 .btn-secondary:hover {
     border-color: var(--border-strong);
-    background-color: #1c2d24;
 }
 
 .chevron-down {
@@ -1306,12 +1471,12 @@ kbd {
 }
 
 /* ==========================================================================
-   9. MODALS & COMMAND PALETTE (Radix UI / cmdk Style)
+   9. MODALS & COMMAND PALETTE
    ========================================================================== */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(5, 8, 7, 0.76);
+    background: rgba(5, 8, 7, 0.72);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -1325,7 +1490,7 @@ kbd {
     width: 480px;
     max-width: 92vw;
     border: 1px solid var(--border-strong);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
     overflow: hidden;
 }
 

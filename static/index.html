@@ -15,7 +15,7 @@
         <header class="d365-header">
             <div class="header-left">
                 <a href="https://bankffin.kz" target="_blank" rel="noopener" class="freedom-logo-wrap" title="Freedom Broker & Bank">
-                    <img src="/static/freedom_logo_light.svg" alt="Freedom Broker" class="freedom-logo-img">
+                    <img id="brand-logo-img" src="/static/freedom_logo_light.svg" alt="Freedom Broker" class="freedom-logo-img">
                 </a>
                 <span class="header-divider"></span>
                 <div class="panda-brand-pill">
@@ -44,16 +44,22 @@
                 </button>
             </nav>
 
-            <!-- Minimalist Command Bar & System Actions Dropdown (De-cluttered) -->
+            <!-- Minimalist Command Bar, Theme Switcher & System Actions Dropdown -->
             <div class="header-actions">
                 <button id="btn-cmdk" class="cmdk-trigger" type="button" title="Быстрый поиск по ID диалога или тексту (Cmd+K)">
                     <span class="cmdk-placeholder">Поиск диалога...</span>
                     <span class="cmdk-keys"><kbd>⌘</kbd><kbd>K</kbd></span>
                 </button>
 
+                <!-- Theme Toggle: Dark (Titanium) / Light (Executive Daylight) -->
+                <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" type="button" title="Переключить тему оформления (Темная / Светлая)">
+                    <span id="theme-icon">☀</span>
+                    <span id="theme-label">Светлая</span>
+                </button>
+
                 <!-- Compact System Menu to avoid button overload -->
                 <div class="dropdown-wrap">
-                    <button id="btn-ops-menu" class="btn btn-secondary btn-icon-label" type="button" title="Системные операции и пакетные действия">
+                    <button id="btn-ops-menu" class="btn btn-secondary btn-sm" type="button" title="Системные операции и пакетные действия">
                         <span>Операции</span>
                         <span class="chevron-down">▾</span>
                     </button>
@@ -83,11 +89,11 @@
                 <div class="kpi-item active-filter" id="kpi-card-total" role="button" tabindex="0" title="Сбросить фильтры — показать все диалоги">
                     <div class="kpi-top">
                         <span class="kpi-label">Всего диалогов</span>
-                        <span class="kpi-delta delta-neutral tabular-nums">RU · KZ · EN</span>
+                        <span class="kpi-delta delta-neutral tabular-nums">60 чат · 5 звонков</span>
                     </div>
                     <div class="kpi-bottom">
                         <span id="kpi-total" class="kpi-value tabular-nums">65</span>
-                        <span class="kpi-sub">100% выборка</span>
+                        <span class="kpi-sub">Клик — показать все</span>
                     </div>
                     <div class="tremor-bar"><span style="width:100%" class="bar-emerald"></span></div>
                 </div>
@@ -135,15 +141,23 @@
             <!-- TAB 1: DIALOGUES & SPLIT-SCREEN INSPECTOR -->
             <div id="dialogues-tab" class="tab-pane active">
                 <div class="workspace-layout">
-                    <!-- Left Column: High-Density TanStack/shadcn Table of Dialogues -->
+                    <!-- STEP 1: High-Density TanStack/shadcn Table of Dialogues -->
                     <aside class="sidebar-list">
                         <div class="sidebar-header">
                             <div class="sidebar-header-top">
-                                <span class="panel-title">Реестр обращений</span>
-                                <span id="visible-count-badge" class="mono-tag tabular-nums">65 записей</span>
+                                <span class="panel-title"><span class="step-num">ШАГ 1</span> Выберите диалог</span>
+                                <span id="visible-count-badge" class="mono-tag tabular-nums">65 зап.</span>
                             </div>
+
+                            <!-- Instant Channel Segmented Pills (Impossible to miss Voice Calls!) -->
+                            <div class="channel-quick-pills" role="group" aria-label="Быстрый фильтр канала">
+                                <button type="button" class="channel-pill active" data-channel="">Все (65)</button>
+                                <button type="button" class="channel-pill" data-channel="voice call">🎙 Звонки с аудио (5)</button>
+                                <button type="button" class="channel-pill" data-channel="agent chat">💬 Чаты (60)</button>
+                            </div>
+
                             <div class="filter-row">
-                                <input type="text" id="filter-search" class="form-input form-input-sm" placeholder="Фильтр по ID (напр. p1-ru-022)...">
+                                <input type="text" id="filter-search" class="form-input form-input-sm" placeholder="Фильтр по ID (напр. p4-ru-001 или p1-ru-022)...">
                                 <div class="filter-selects-inline">
                                     <select id="filter-lang" class="form-select form-select-sm" title="Язык диалога">
                                         <option value="">Язык: Все</option>
@@ -179,29 +193,35 @@
                         </div>
                     </aside>
 
-                    <!-- Middle Column: Transcript with Line Numbers & Violation Highlights -->
+                    <!-- STEP 2: Transcript with Line Numbers, Audio Sync & Violation Highlights -->
                     <section class="transcript-section">
                         <div class="section-card transcript-card">
                             <div class="card-header">
                                 <div class="header-meta">
-                                    <div class="card-eyebrow">Стенограмма и верификация цитат</div>
+                                    <div class="card-eyebrow"><span class="step-num">ШАГ 2</span> Стенограмма и аудиозапись</div>
                                     <div class="dialogue-title-row">
                                         <h3 id="current-dialogue-title" class="tabular-nums">Выберите диалог</h3>
                                         <div class="dialogue-badges" id="current-dialogue-badges"></div>
                                     </div>
                                 </div>
                                 <div class="header-buttons">
+                                    <button id="btn-speak-selection" class="btn btn-secondary btn-sm" style="display:none;" title="Озвучить выбранную реплику синтезом речи (для чатов без MP3)">
+                                        <span>🔊 Озвучить текст</span>
+                                    </button>
                                     <button id="btn-run-eval" class="btn btn-secondary btn-sm" style="display:none;" title="Повторно запустить LLM/Rule проверку для этого диалога">
                                         <span>↻ Переоценить</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Audio Player for Voice Calls -->
+                            <!-- Real MP3 Audio Player for Voice Calls (Synced with Transcript Clicks!) -->
                             <div id="audio-player-container" class="audio-banner" style="display:none;">
-                                <div class="audio-info">
-                                    <span class="mono-tag">AUDIO</span>
-                                    <span>Запись голосового канала:</span>
+                                <div class="audio-top-row">
+                                    <div class="audio-info">
+                                        <span class="audio-live-badge">🎙 РЕАЛЬНАЯ ЗАПИСЬ ЗВОНКА</span>
+                                        <span class="audio-sync-hint">Кликните на любую реплику ниже для перемотки аудио на этот момент</span>
+                                    </div>
+                                    <span id="audio-time-indicator" class="mono-tag tabular-nums">00:00</span>
                                 </div>
                                 <audio id="voice-audio-player" controls preload="metadata"></audio>
                             </div>
@@ -216,12 +236,12 @@
                         </div>
                     </section>
 
-                    <!-- Right Column: 8-Criteria Regulation Checklist -->
+                    <!-- STEP 3: 8-Criteria Regulation Checklist -->
                     <aside class="scorecard-section">
                         <div class="section-card scorecard-card">
                             <div class="card-header">
                                 <div>
-                                    <div class="card-eyebrow">Чек-лист регламента (8 критериев)</div>
+                                    <div class="card-eyebrow"><span class="step-num">ШАГ 3</span> Чек-лист регламента (8 критериев)</div>
                                     <h3>Детализация оценки</h3>
                                 </div>
                                 <div class="scorecard-header-right">
@@ -349,10 +369,10 @@
                 <span class="footer-sep">/</span>
                 <span>Freedom Broker &amp; Bank Quality Assurance</span>
                 <span class="footer-sep">/</span>
-                <span class="mono-footer-item">WCAG AAA · Tabular Nums</span>
+                <span class="mono-footer-item">Пошаговый интерфейс: Шаг 1 → Шаг 2 → Шаг 3</span>
             </div>
             <div class="pres-footer-right tabular-nums">
-                <span class="mono-footer-item">Навигация: <kbd>1</kbd>–<kbd>3</kbd> · Поиск: <kbd>⌘K</kbd></span>
+                <span class="mono-footer-item">Вкладки: <kbd>1</kbd>–<kbd>3</kbd> · Поиск: <kbd>⌘K</kbd></span>
                 <span class="footer-sep">|</span>
                 <span id="pres-slide-indicator">01 / 03</span>
             </div>
@@ -364,7 +384,7 @@
         <div class="modal-card cmdk-card">
             <div class="cmdk-input-wrap">
                 <span class="cmdk-search-icon">⌕</span>
-                <input type="text" id="cmdk-input" class="cmdk-input" placeholder="Введите ID диалога (напр. p1-ru-022), язык (KZ/RU/EN) или команду..." autocomplete="off">
+                <input type="text" id="cmdk-input" class="cmdk-input" placeholder="Введите ID диалога (напр. p4-ru-001 для звонка), язык или команду..." autocomplete="off">
                 <kbd class="cmdk-esc" onclick="closeModal('cmdk-modal')">ESC</kbd>
             </div>
             <div id="cmdk-results" class="cmdk-results">
