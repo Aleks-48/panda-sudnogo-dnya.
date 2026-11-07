@@ -1,0 +1,10 @@
+services:
+  cqa:
+    build: .
+    ports: ["127.0.0.1:8000:8000"]
+    environment:
+      LLM_PROVIDER: mock
+      CQA_DB_PATH: /data/cqa.db
+    volumes: ["cqa_data:/data"]
+volumes:
+  cqa_data:

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom Broker · CQA Dashboard (Dynamics 365 Component)</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div style="padding:10px 20px;background:#fff4ce;color:#604400;font-size:13px">Демонстрационный прототип. Загружен официальный чек-лист качества чатов: 7 взвешенных критериев и отдельный флаг грубых ошибок. Без LLM результаты требуют ручной проверки; нули не являются оценками.</div>
+    <div class="app-container">
+        <!-- Top App Bar (Dynamics 365 Header) -->
+        <header class="d365-header">
+            <div class="header-left">
+                <div class="brand-badge">FREEDOM BROKER</div>
+                <div class="header-title">Conversation Quality Analytics (CQA)</div>
+                <span class="d365-tag">Dynamics 365 Component</span>
+            </div>
+            <div class="header-nav">
+                <button class="nav-tab active" data-tab="dialogues-tab">Диалоги и Оценка</button>
+                <button class="nav-tab" data-tab="appeals-tab">Центр Апелляций <span id="appeals-badge" class="badge-counter" style="display:none;">0</span></button>
+                <button class="nav-tab" data-tab="checklist-tab">Конструктор Чек-листа</button>
+            </div>
+            <div class="header-actions">
+                <button id="btn-batch-eval" class="btn btn-secondary">⚡ Оценить все</button>
+                <button id="btn-import-dev" class="btn btn-primary">📥 Загрузить DEV API</button>
+            </div>
+        </header>
+
+        <!-- KPI Summary Bar -->
+        <section class="kpi-bar">
+            <div class="kpi-item">
+                <span class="kpi-label">Всего диалогов</span>
+                <span id="kpi-total" class="kpi-value">-</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Оценено</span>
+                <span id="kpi-evaluated" class="kpi-value">-</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Средний балл</span>
+                <span id="kpi-avg" class="kpi-value highlight-score">-</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Грубые ошибки</span>
+                <span id="kpi-fatal" class="kpi-value danger-score">0</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Активные апелляции</span>
+                <span id="kpi-appeals" class="kpi-value">0</span>
+            </div>
+        </section>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <!-- TAB 1: DIALOGUES & EVALUATION -->
+            <div id="dialogues-tab" class="tab-pane active">
+                <div class="workspace-layout">
+                    <!-- Left Sidebar: Dialogue List -->
+                    <aside class="sidebar-list">
+                        <div class="sidebar-header">
+                            <div class="filter-row">
+                                <select id="filter-lang" class="form-select">
+                                    <option value="">Все языки (RU, KZ, EN)</option>
+                                    <option value="RU">Русский (RU)</option>
+                                    <option value="KZ">Қазақша (KZ)</option>
+                                    <option value="EN">English (EN)</option>
+                                </select>
+                                <select id="filter-channel" class="form-select">
+                                    <option value="">Все каналы</option>
+                                    <option value="agent chat">Чат</option>
+                                    <option value="voice call">Звонок</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="dialogues-container" class="dialogues-list">
+                            <!-- Injected by JS -->
+                        </div>
+                    </aside>
+
+                    <!-- Middle Area: Interactive Transcript -->
+                    <section class="transcript-section">
+                        <div class="section-card transcript-card">
+                            <div class="card-header">
+                                <div class="header-meta">
+                                    <h3 id="current-dialogue-title">Выберите диалог из списка</h3>
+                                    <div class="dialogue-badges" id="current-dialogue-badges"></div>
+                                </div>
+                                <div class="header-buttons">
+                                    <button id="btn-run-eval" class="btn btn-primary" style="display:none;">▶ Оценить диалог</button>
+                                </div>
+                            </div>
+
+                            <!-- Audio Player for Voice Calls -->
+                            <div id="audio-player-container" class="audio-banner" style="display:none;">
+                                <div class="audio-info">
+                                    <span class="audio-icon">🎙️</span>
+                                    <span>Аудиозапись звонка:</span>
+                                </div>
+                                <audio id="voice-audio-player" controls preload="metadata"></audio>
+                            </div>
+
+                            <!-- Transcript Body -->
+                            <div id="transcript-body" class="transcript-messages">
+                                <div class="empty-placeholder">
+                                    <div class="placeholder-icon">💬</div>
+                                    <p>Выберите обращение из левого списка для просмотра транскрипта и результатов проверки.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Right Area: Quality Scorecard -->
+                    <aside class="scorecard-section">
+                        <div class="section-card scorecard-card">
+                            <div class="card-header">
+                                <h3>Карточка оценки качества</h3>
+                                <div id="scorecard-total-badge" class="total-score-pill">--%</div>
+                            </div>
+
+                            <div id="fatal-alert" class="alert-fatal" style="display:none;">
+                                ⚠️ <strong>Внимание: зафиксирована критическая ошибка!</strong> Проверьте доказательства и правило влияния на итог в чек-листе.
+                            </div>
+
+                            <div id="na-rebalance-notice" class="alert-na" style="display:none;">
+                                ℹ️ <strong>Применено правило N/A:</strong> веса неактивных критериев автоматически перераспределены пропорционально между применимыми.
+                            </div>
+
+                            <div id="scorecard-body" class="scorecard-list">
+                                <div class="empty-placeholder">
+                                    <p>Оценка еще не выполнена. Нажмите «Оценить диалог».</p>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- TAB 2: APPEALS & REVIEW -->
+            <div id="appeals-tab" class="tab-pane">
+                <div class="appeals-layout">
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3>Журнал апелляций (Контур супервизора / контролера)</h3>
+                            <span class="subtitle">Пересмотр спорных оценок и ручной пересчет итогов</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="d365-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Диалога</th>
+                                        <th>Критерий</th>
+                                        <th>Исходный балл</th>
+                                        <th>Комментарий оператора</th>
+                                        <th>Статус</th>
+                                        <th>Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appeals-table-body">
+                                    <!-- Injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CHECKLIST BUILDER -->
+            <div id="checklist-tab" class="tab-pane">
+                <div class="checklist-layout">
+                    <div class="section-card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Конфигурация чек-листа оценки</h3>
+                                <p class="subtitle">Управление критериями, шкалами, весами и правилами N/A (Стресс-тест 23-го часа)</p>
+                            </div>
+                            <button id="btn-add-criterion" class="btn btn-primary">+ Добавить критерий</button>
+                        </div>
+                        <div id="criteria-editor-list" class="criteria-grid">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: Submit Appeal -->
+    <div id="appeal-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Подача апелляции по критерию</h3>
+                <button class="modal-close" onclick="closeModal('appeal-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="appeal-criterion-name" class="appeal-crit-title"></p>
+                <div class="form-group">
+                    <label>Обоснование несогласия (комментарий оператора):</label>
+                    <textarea id="appeal-comment" class="form-textarea" rows="4" placeholder="Укажите, почему вы считаете оценку заниженной, со ссылкой на контекст диалога..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('appeal-modal')">Отмена</button>
+                <button id="btn-confirm-appeal" class="btn btn-primary">Отправить на пересмотр</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Supervisor Review Decision -->
+    <div id="decision-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Решение проверяющего по апелляции</h3>
+                <button class="modal-close" onclick="closeModal('decision-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="review-meta">
+                    <p><strong>Диалог:</strong> <span id="review-conv-id"></span></p>
+                    <p><strong>Критерий:</strong> <span id="review-crit-name"></span></p>
+                    <p><strong>Претензия оператора:</strong> <span id="review-op-comment" class="quote-box"></span></p>
+                </div>
+                <div class="form-group">
+                    <label>Решение:</label>
+                    <select id="review-action" class="form-select">
+                        <option value="accepted">Удовлетворить апелляцию (Повысить балл)</option>
+                        <option value="rejected">Отклонить (Оставить прежнюю оценку)</option>
+                    </select>
+                </div>
+                <div id="new-score-group" class="form-group">
+                    <label>Новый балл:</label>
+                    <input type="number" id="review-new-score" class="form-input" step="0.5" min="0" value="1.0">
+                </div>
+                <div class="form-group">
+                    <label>Комментарий проверяющего (причина решения):</label>
+                    <textarea id="review-comment" class="form-textarea" rows="3" placeholder="Опишите причину изменения или подтверждения оценки..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('decision-modal')">Отмена</button>
+                <button id="btn-save-decision" class="btn btn-primary">Сохранить и пересчитать итог</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add/Edit Criterion -->
+    <div id="criterion-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="crit-modal-title">Редактирование критерия</h3>
+                <button class="modal-close" onclick="closeModal('criterion-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-crit-id">
+                <div class="form-group">
+                    <label>Название критерия:</label>
+                    <input type="text" id="edit-crit-name" class="form-input" placeholder="Например: Предложение инвестиционных продуктов">
+                </div>
+                <div class="form-group">
+                    <label>Описание и правила оценки:</label>
+                    <textarea id="edit-crit-desc" class="form-textarea" rows="2" placeholder="Оператор рассказал о преимуществах Tradernet..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Вес (% в общем чек-листе):</label>
+                        <input type="number" id="edit-crit-weight" class="form-input" min="1" max="100" value="10">
+                    </div>
+                    <div class="form-group half">
+                        <label>Тип шкалы:</label>
+                        <select id="edit-crit-scale" class="form-select">
+                            <option value="binary">Бинарный (0 или 1)</option>
+                            <option value="scale_20">Ступени 0, 5, 10, 15, 20</option>
+<option value="scale_10">Ступени 0, 4, 7, 10</option>
+<option value="scale_5">Шкала 0..5 баллов</option>
+                            <option value="scale_100">Шкала 0..100 баллов</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half checkbox-group">
+                        <label><input type="checkbox" id="edit-crit-na" checked> Разрешен N/A</label>
+                    </div>
+                    <div class="form-group half checkbox-group">
+                        <label><input type="checkbox" id="edit-crit-fatal"> Грубая ошибка (отдельная отметка)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('criterion-modal')">Отмена</button>
+                <button id="btn-save-criterion" class="btn btn-primary">Сохранить в чек-лист</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
