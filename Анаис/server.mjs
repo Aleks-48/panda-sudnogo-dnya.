@@ -1,4 +1,7 @@
 import {seedDemo,demoScenarios} from './demo.mjs';
+import {mergeBackup,productState} from './backup.mjs';
+import {openAudioStream} from './audio.mjs';
+import {Readable} from 'node:stream';
 import {createHash} from 'node:crypto';
 import {evaluateModel,modelConfig} from './llm.mjs';
 import http from 'node:http';
@@ -34,19 +37,24 @@ async function body(req){let text='';for await(const chunk of req){text+=chunk;i
 function getEvaluation(id){const e=db.evaluations.find(x=>x.id===id);if(!e)throw Error('Оценка не найдена');return e;}
 const server=http.createServer(async(req,res)=>{try{
  const url=new URL(req.url,'http://localhost');
- if(req.method==='GET'&&url.pathname==='/api/state')return json(res,200,{...db,configured:modelConfig().configured,modelStatus:{provider:modelConfig().provider,model:modelConfig().model||null},demoScenarios:demoScenarios()});
+ const view=process.env.ENABLE_DEMO==='true'?db:productState(db);
+ if(req.method==='GET'&&url.pathname.startsWith('/api/audio/')){const c=view.conversations.find(c=>c.conversation_id===decodeURIComponent(url.pathname.slice(11)));if(!c?.audio_url)return json(res,404,{error:'Запись не найдена'});const audio=await openAudioStream(c.audio_url,{range:req.headers.range,allowedHosts:process.env.AUDIO_ALLOWED_HOSTS||''});res.writeHead(audio.status,Object.fromEntries(audio.headers));Readable.fromWeb(audio.body).on('error',()=>res.destroy()).pipe(res);return;}
+ if(req.method==='GET'&&url.pathname==='/api/state')return json(res,200,{...view,configured:modelConfig().configured,datasetConfigured:!!process.env.DATASET_URL,localWorkspace:true,modelStatus:{provider:modelConfig().provider,model:modelConfig().model||null},demoScenarios:process.env.ENABLE_DEMO==='true'?demoScenarios():[]});
  if(req.method==='GET'&&url.pathname==='/api/export.csv'){
  const cell=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';
- const rows=[['Диалог','Язык','Модель','Тип','Исходный балл','Финальный балл','Грубая ошибка','Дата'],...db.evaluations.map(e=>[e.conversationId,db.conversations.find(c=>c.conversation_id===e.conversationId)?.language,e.model,e.demo?'Учебная фикстура':e.model==='manual'?'Ручная':'API',e.originalScore.total,e.finalScore.total,e.finalScore.grossError?'Да':'Нет',e.createdAt])];
+ const rows=[['Диалог','Язык','Модель','Тип','Исходный балл','Финальный балл','Грубая ошибка','Дата'],...view.evaluations.map(e=>[e.conversationId,view.conversations.find(c=>c.conversation_id===e.conversationId)?.language,e.model,e.demo?'Учебная фикстура':e.model==='manual'?'Ручная':'API',e.originalScore.total,e.finalScore.total,e.finalScore.grossError?'Да':'Нет',e.createdAt])];
  res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="cqa-results.csv"'});return res.end('\ufeff'+rows.map(row=>row.map(cell).join(';')).join('\r\n'));
  }
- if(req.method==='GET'&&url.pathname==='/api/export'){res.setHeader('Content-Disposition','attachment; filename="cqa-export.json"');return json(res,200,db);}
+ if(req.method==='GET'&&url.pathname==='/api/export'){res.setHeader('Content-Disposition','attachment; filename="cqa-export.json"');return json(res,200,view);}
  if(req.method==='POST'&&url.pathname.startsWith('/api/')){
  if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`)return json(res,403,{error:'Недопустимый источник запроса'});
  if(!req.headers['content-type']?.startsWith('application/json'))return json(res,415,{error:'Ожидается application/json'});
  const b=await body(req);let result;
  if(url.pathname==='/api/demo'){
+ if(process.env.ENABLE_DEMO!=='true')return json(res,404,{error:'Раздел недоступен'});
  result=seedDemo(db,b.newRun===true);
+ }else if(url.pathname==='/api/restore'){
+ result=mergeBackup(db,b.payload);
  }else if(url.pathname==='/api/model/check'){
  const config=modelConfig();
  try{
@@ -75,8 +83,8 @@ const server=http.createServer(async(req,res)=>{try{
  await save();return json(res,200,result);
  }
  if(req.method==='GET'){
- const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css'],'/presentation.pptx':['presentation/Pandy_sudnogo_dnya_CQA.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation']};const f=files[url.pathname];if(f){if(url.pathname==='/presentation.pptx')res.setHeader('Content-Disposition','attachment; filename="Pandy_sudnogo_dnya_CQA.pptx"');res.writeHead(200,{'Content-Type':`${f[1]}${f[1].startsWith('text/')?'; charset=utf-8':''}`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
+ const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css']};const f=files[url.pathname];if(f){res.writeHead(200,{'Content-Type':`${f[1]}${f[1].startsWith('text/')?'; charset=utf-8':''}`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
  }
  json(res,404,{error:'Не найдено'});
- }catch(e){console.error(e.message);json(res,400,{error:e.message});}});
+ }catch(e){console.error(e.message);json(res,e.status||400,{error:e.message});}});
 server.listen(Number(process.env.PORT)||3000,'127.0.0.1',()=>console.log(`CQA: http://127.0.0.1:${Number(process.env.PORT)||3000}`));

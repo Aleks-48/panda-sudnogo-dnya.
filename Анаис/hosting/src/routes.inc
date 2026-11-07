@@ -4,7 +4,10 @@
  const b=await body(request);let result;
  if(url.pathname==='/api/model/check'||(url.pathname==='/api/evaluate'&&!b.results))await reserveModelCall(env.DB,sessionId);
  if(url.pathname==='/api/demo'){
+ if(env.ENABLE_DEMO!=='true')return reply(404,{error:'Раздел недоступен'});
  result=seedDemo(db,b.newRun===true);
+ }else if(url.pathname==='/api/restore'){
+ result=mergeBackup(db,b.payload);
  }else if(url.pathname==='/api/model/check'){
  const config=modelConfig(env);
  try{

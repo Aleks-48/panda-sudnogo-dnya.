@@ -1,0 +1,13 @@
+{
+  "createdAt": "2026-11-07T12:51:19.397Z",
+  "url": "https://cqa-quality-control.restfulrhubarb1.chatgpt.site",
+  "syntheticInput": true,
+  "checks": [
+    {
+      "name": "clean-workspace",
+      "passed": true
+    }
+  ],
+  "ok": false,
+  "error": "Лимит сервиса модели исчерпан. Следующая попытка примерно через 324 мин. Учебные сценарии и ручная оценка доступны."
+}

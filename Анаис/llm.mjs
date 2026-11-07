@@ -30,7 +30,7 @@ export async function evaluateModel(conversation,checklist){
  if(resp.ok)break;
   let code='';try{const body=await resp.json();code=body.error?.code||body.error?.type||'';}catch{}
   const retrySeconds=Number(resp.headers.get('retry-after'));
-  if(resp.status===429&&code==='rate_limit_exceeded'&&retrySeconds>60)throw Object.assign(Error(`Лимит сервиса модели исчерпан. Следующая попытка примерно через ${Math.ceil(retrySeconds/60)} мин. Учебные сценарии и ручная оценка доступны.`),{status:429});
+  if(resp.status===429&&code==='rate_limit_exceeded'&&retrySeconds>60)throw Object.assign(Error(`Лимит сервиса модели исчерпан. Следующая попытка примерно через ${Math.ceil(retrySeconds/60)} мин. Ручная оценка и работа с обращениями доступны.`),{status:429});
   if(attempt<2&&(code==='rate_limit_exceeded'||(resp.status===429&&!code)||resp.status===503)){
    const raw=resp.headers.get('retry-after'),seconds=Number(raw);const retryMs=raw&&(Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-Date.now());
    await new Promise(resolve=>setTimeout(resolve,Math.max(1000,Math.min(60000,retryMs||15000*(attempt+1)))));continue;
