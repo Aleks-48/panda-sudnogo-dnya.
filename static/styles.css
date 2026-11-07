@@ -1,75 +1,71 @@
 /* ==========================================================================
-   FREEDOM BROKER CQA v2.0 — DUAL THEME (DARK TITANIUM & EXECUTIVE LIGHT)
-   Architecture: Tremor Raw + shadcn/ui + Linear / Bloomberg Terminal
-   Zero AI-Slop: Subpixel 1px borders, tabular-nums, step-by-step clarity
+   FREEDOM BROKER CQA v2.0 — CLEAN TELEGRAM-STYLE MESSENGER & QA WORKSPACE
+   Dual Theme: Dark Titanium & Executive Daylight (Light Default for Specialists)
    ========================================================================== */
 
 :root {
-    /* DARK THEME (DEFAULT): Latverian Titanium & Sovereign Emerald */
-    --bg-primary: #090d0b;           /* Глубокий оружейный титан */
-    --bg-surface: #0f1713;           /* Карточки и сайдбар */
-    --bg-surface-elevated: #15221b;  /* Выделенные строки и ховеры */
-    --bg-surface-active: #192b22;    /* Выбранная строка */
+    /* DARK THEME: Latverian Titanium & Sovereign Emerald */
+    --bg-primary: #090d0b;
+    --bg-surface: #0f1713;
+    --bg-surface-elevated: #15221b;
+    --bg-surface-active: #192b22;
+    --bg-chat-canvas: #0b110e;
     --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.15);
-    --border-emerald: rgba(16, 185, 129, 0.28);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-emerald: rgba(16, 185, 129, 0.32);
 
-    /* Фирменный изумрудный акцент Freedom / Sovereign Emerald */
     --brand-emerald: #10b981;
     --brand-emerald-dark: #059669;
     --brand-emerald-glow: rgba(16, 185, 129, 0.12);
 
-    /* Статусы оценки */
-    --status-fatal-bg: rgba(239, 68, 68, 0.12);
+    --status-fatal-bg: rgba(239, 68, 68, 0.14);
     --status-fatal-text: #f87171;
-    --status-fatal-border: rgba(239, 68, 68, 0.32);
+    --status-fatal-border: rgba(239, 68, 68, 0.35);
 
-    --status-warning-bg: rgba(245, 158, 11, 0.12);
+    --status-warning-bg: rgba(245, 158, 11, 0.14);
     --status-warning-text: #fbbf24;
-    --status-warning-border: rgba(245, 158, 11, 0.3);
+    --status-warning-border: rgba(245, 158, 11, 0.32);
 
-    --status-success-bg: rgba(16, 185, 129, 0.12);
+    --status-success-bg: rgba(16, 185, 129, 0.14);
     --status-success-text: #34d399;
-    --status-success-border: rgba(16, 185, 129, 0.28);
+    --status-success-border: rgba(16, 185, 129, 0.30);
 
     --status-na-bg: rgba(148, 163, 156, 0.10);
     --status-na-text: #94a39c;
 
-    /* Текстовая иерархия (WCAG AAA) */
     --text-primary: #f1f5f3;
     --text-secondary: #94a39c;
-    --text-muted: #5e6d66;
+    --text-muted: #64756d;
 
-    /* Реплики оператора и клиента */
-    --msg-op-bg: #0d1712;
-    --msg-client-bg: #0f1713;
+    /* Пузыри чата как в Telegram */
+    --bubble-client-bg: #16201b;
+    --bubble-client-border: rgba(255, 255, 255, 0.10);
+    --bubble-op-bg: #112a20;
+    --bubble-op-border: rgba(16, 185, 129, 0.35);
     --audio-filter: invert(0.9) hue-rotate(140deg);
 
-    /* Обратная совместимость с JS-токенами */
     --fb-green: #10b981;
     --danger: #f87171;
     --success: #059669;
 
-    /* Типографика */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-
-    /* Строгие корпоративные скругления (4px / 6px) */
-    --radius-sm: 4px;
-    --radius-md: 6px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
 }
 
 /* ==========================================================================
-   LIGHT THEME OVERRIDES (html.light — Clean Executive Daylight)
+   LIGHT THEME OVERRIDES (html.light — Чистая дневная тема для специалистов)
    ========================================================================== */
 html.light {
-    --bg-primary: #f4f6f5;           /* Светлый банковский платиновый фон */
-    --bg-surface: #ffffff;           /* Чистые белые панели и таблицы */
-    --bg-surface-elevated: #edf2ef;  /* Мягкий ховер строк */
-    --bg-surface-active: #e2efe8;    /* Активная выбранная строка */
-    --border-subtle: #dde3df;
-    --border-strong: #c3cec7;
-    --border-emerald: rgba(5, 150, 105, 0.38);
+    --bg-primary: #f1f5f3;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #f4f8f6;
+    --bg-surface-active: #e3f3eb;
+    --bg-chat-canvas: #eef3f0;
+    --border-subtle: #dfe6e2;
+    --border-strong: #c5d1ca;
+    --border-emerald: rgba(5, 150, 105, 0.40);
 
     --brand-emerald: #059669;
     --brand-emerald-dark: #047857;
@@ -90,12 +86,15 @@ html.light {
     --status-na-bg: #f1f5f9;
     --status-na-text: #475569;
 
-    --text-primary: #0f1713;
+    --text-primary: #111814;
     --text-secondary: #47554e;
-    --text-muted: #64746c;
+    --text-muted: #687870;
 
-    --msg-op-bg: #f0fdf4;
-    --msg-client-bg: #ffffff;
+    /* Пузыри чата как в светлом Telegram */
+    --bubble-client-bg: #ffffff;
+    --bubble-client-border: #d8e1dc;
+    --bubble-op-bg: #e3f7ed;
+    --bubble-op-border: #9ce0be;
     --audio-filter: none;
 
     --fb-green: #059669;
@@ -119,8 +118,6 @@ html, body {
     line-height: 1.45;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .tabular-nums {
@@ -128,13 +125,12 @@ html, body {
     font-variant-numeric: tabular-nums;
 }
 
-/* Тонкие скроллбары */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: var(--bg-primary);
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
     background: var(--border-strong);
@@ -148,27 +144,13 @@ html, body {
     background-color: var(--bg-primary);
 }
 
-/* Индикатор шага (ШАГ 1, ШАГ 2, ШАГ 3) для прозрачной навигации */
-.step-num {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    font-weight: 600;
-    padding: 1px 5px;
-    margin-right: 4px;
-    border-radius: 3px;
-    background-color: var(--brand-emerald-glow);
-    color: var(--brand-emerald);
-    border: 1px solid var(--border-emerald);
-}
-
 /* ==========================================================================
-   1. HEADER / TOPBAR
+   1. ШАПКА (Простая и понятная)
    ========================================================================== */
 .d365-header {
     background-color: var(--bg-surface);
-    height: 48px;
-    padding: 0 16px;
+    height: 50px;
+    padding: 0 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -186,14 +168,8 @@ html, body {
 .freedom-logo-wrap {
     display: flex;
     align-items: center;
-    padding: 3px 6px;
+    padding: 4px 6px;
     border-radius: var(--radius-sm);
-    border: 1px solid transparent;
-    transition: border-color 0.15s ease;
-}
-
-.freedom-logo-wrap:hover {
-    border-color: var(--border-subtle);
 }
 
 .freedom-logo-img {
@@ -215,17 +191,14 @@ html, body {
 }
 
 .panda-crest-mono {
-    width: 22px;
-    height: 22px;
-    border-radius: var(--radius-sm);
-    background-color: var(--bg-surface-elevated);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--brand-emerald-glow);
     border: 1px solid var(--border-emerald);
     color: var(--brand-emerald);
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 600;
-    display: grid;
-    place-items: center;
+    font-weight: 700;
 }
 
 .panda-brand-text {
@@ -235,22 +208,17 @@ html, body {
 }
 
 .panda-team-tag {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
     color: var(--brand-emerald);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 .header-title {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
-    letter-spacing: -0.01em;
 }
 
-/* Навигационные вкладки */
 .header-nav {
     display: flex;
     align-items: center;
@@ -266,9 +234,9 @@ html, body {
     border: 1px solid transparent;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     display: inline-flex;
@@ -279,28 +247,13 @@ html, body {
 
 .nav-tab:hover {
     color: var(--text-primary);
-    background-color: var(--bg-surface-elevated);
 }
 
 .nav-tab.active {
     color: var(--text-primary);
     background-color: var(--bg-surface);
     border-color: var(--border-emerald);
-}
-
-.nav-kbd {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    padding: 0 4px;
-    border-radius: 3px;
-    background-color: var(--bg-surface-elevated);
-    color: var(--text-muted);
-    border: 1px solid var(--border-subtle);
-}
-
-.nav-tab.active .nav-kbd {
-    color: var(--brand-emerald);
-    border-color: var(--border-emerald);
+    font-weight: 600;
 }
 
 .badge-counter {
@@ -308,56 +261,28 @@ html, body {
     color: var(--status-warning-text);
     border: 1px solid var(--status-warning-border);
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 600;
-    padding: 0 5px;
-    border-radius: var(--radius-sm);
+    padding: 0 6px;
+    border-radius: 99px;
 }
 
-/* Правый блок хедера */
 .header-actions {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.cmdk-trigger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 4px 10px;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    font-size: 12px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.cmdk-trigger:hover {
-    border-color: var(--border-emerald);
-    color: var(--text-primary);
-}
-
-.cmdk-keys {
-    display: inline-flex;
-    gap: 3px;
-}
-
 kbd {
     font-family: var(--font-mono);
     font-size: 10px;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
     background-color: var(--bg-surface-elevated);
     border: 1px solid var(--border-strong);
     color: var(--text-secondary);
 }
 
-/* Выпадающее меню системных операций */
 .dropdown-wrap {
     position: relative;
 }
@@ -367,26 +292,17 @@ kbd {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
-    width: 250px;
+    width: 230px;
     background-color: var(--bg-surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     padding: 4px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
     z-index: 100;
 }
 
 .dropdown-menu.open {
     display: block;
-}
-
-.dropdown-section-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    padding: 6px 8px 4px;
 }
 
 .dropdown-item {
@@ -395,15 +311,14 @@ kbd {
     border: none;
     color: var(--text-primary);
     font-family: var(--font-sans);
-    font-size: 12px;
-    padding: 7px 8px;
+    font-size: 12.5px;
+    padding: 8px 10px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.12s ease;
 }
 
 .dropdown-item:hover {
@@ -418,17 +333,17 @@ kbd {
 
 .mono-hint {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     color: var(--text-muted);
 }
 
 /* ==========================================================================
-   2. TREMOR RAW KPI BAR (4 Interactive Metric Blocks)
+   2. 4 КАРТОЧКИ ПОКАЗАТЕЛЕЙ (Компактные и понятные)
    ========================================================================== */
 .kpi-bar {
     background-color: var(--bg-primary);
     border-bottom: 1px solid var(--border-subtle);
-    padding: 8px 16px;
+    padding: 8px 18px;
     flex-shrink: 0;
 }
 
@@ -442,10 +357,10 @@ kbd {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 9px 14px;
+    padding: 8px 14px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     cursor: pointer;
     transition: border-color 0.14s ease, background-color 0.14s ease;
     user-select: none;
@@ -453,7 +368,6 @@ kbd {
 
 .kpi-item:hover {
     border-color: var(--border-strong);
-    background-color: var(--bg-surface-elevated);
 }
 
 .kpi-item.active-filter {
@@ -465,68 +379,28 @@ kbd {
     border-color: var(--status-fatal-text);
 }
 
-.kpi-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .kpi-label {
     font-size: 11.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-.kpi-delta {
-    font-family: var(--font-mono);
-    font-size: 10px;
     font-weight: 500;
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
-}
-
-.delta-neutral {
-    background-color: var(--status-na-bg);
     color: var(--text-secondary);
-    border: 1px solid var(--border-subtle);
-}
-
-.delta-emerald {
-    background-color: var(--status-success-bg);
-    color: var(--status-success-text);
-    border: 1px solid var(--status-success-border);
-}
-
-.delta-fatal {
-    background-color: var(--status-fatal-bg);
-    color: var(--status-fatal-text);
-    border: 1px solid var(--status-fatal-border);
-}
-
-.delta-warning {
-    background-color: var(--status-warning-bg);
-    color: var(--status-warning-text);
-    border: 1px solid var(--status-warning-border);
 }
 
 .kpi-bottom {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-top: 2px;
 }
 
 .kpi-value {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--text-primary);
-    line-height: 1.1;
 }
 
 .kpi-sub {
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--text-muted);
 }
 
@@ -534,28 +408,8 @@ kbd {
 .danger-score { color: var(--status-fatal-text); }
 .warning-score { color: var(--status-warning-text); }
 
-/* Tremor Micro Tracker Bar */
-.tremor-bar {
-    height: 3px;
-    width: 100%;
-    background-color: var(--border-subtle);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 3px;
-}
-
-.tremor-bar span {
-    display: block;
-    height: 100%;
-    border-radius: 2px;
-}
-
-.bar-emerald { background-color: var(--brand-emerald); }
-.bar-fatal { background-color: var(--status-fatal-text); }
-.bar-warning { background-color: var(--status-warning-text); }
-
 /* ==========================================================================
-   3. MAIN WORKSPACE & HIGH-DENSITY 3-PANE INSPECTOR
+   3. ТРЕХКОЛОНОЧНЫЙ ЭКРАН (Список чатов -> Переписка -> Оценка)
    ========================================================================== */
 .main-content {
     flex: 1;
@@ -575,12 +429,12 @@ kbd {
 
 .workspace-layout {
     display: grid;
-    grid-template-columns: 350px 1fr 440px;
+    grid-template-columns: 330px 1fr 430px;
     height: 100%;
     overflow: hidden;
 }
 
-/* Левая колонка: Таблица диалогов */
+/* ЛЕВАЯ КОЛОНКА: Список диалогов */
 .sidebar-list {
     background-color: var(--bg-surface);
     border-right: 1px solid var(--border-subtle);
@@ -597,34 +451,9 @@ kbd {
     gap: 8px;
 }
 
-.sidebar-header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.panel-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-}
-
-.mono-tag {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--text-secondary);
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-subtle);
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
-}
-
-/* Сегментированный переключатель: Все / Звонки с аудио / Чаты */
 .channel-quick-pills {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     background-color: var(--bg-primary);
     padding: 3px;
@@ -635,14 +464,14 @@ kbd {
 .channel-pill {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
-    padding: 4px 8px;
+    border-radius: 4px;
+    padding: 5px 4px;
     font-family: var(--font-sans);
     font-size: 11px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.12s ease;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -657,15 +486,13 @@ kbd {
     font-weight: 600;
 }
 
-.filter-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.channel-pill.pill-danger.active {
+    color: var(--status-fatal-text);
+    border-color: var(--status-fatal-border);
 }
 
-.filter-selects-inline {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+.search-lang-row {
+    display: flex;
     gap: 6px;
 }
 
@@ -674,35 +501,20 @@ kbd {
     padding: 6px 10px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: 12.5px;
     font-family: var(--font-sans);
     background-color: var(--bg-primary);
     color: var(--text-primary);
     outline: none;
-    transition: border-color 0.15s ease;
 }
 
 .form-select-sm, .form-input-sm {
-    padding: 4px 8px;
-    font-size: 11.5px;
+    padding: 5px 8px;
+    font-size: 12px;
 }
 
 .form-select:focus, .form-input:focus, .form-textarea:focus {
     border-color: var(--brand-emerald);
-}
-
-.table-col-headers {
-    display: grid;
-    grid-template-columns: 1fr 56px 96px;
-    padding: 6px 12px;
-    background-color: var(--bg-primary);
-    border-bottom: 1px solid var(--border-subtle);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .dialogues-list {
@@ -712,14 +524,14 @@ kbd {
     flex-direction: column;
 }
 
-/* Строки диалогов высокой плотности */
+/* Элемент списка диалогов (в стиле списка чатов Telegram) */
 .dialogue-item {
-    display: grid;
-    grid-template-columns: 1fr 56px 96px;
+    display: flex;
     align-items: center;
-    padding: 8px 12px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border-subtle);
-    background-color: transparent;
     cursor: pointer;
     transition: background-color 0.1s ease;
 }
@@ -731,58 +543,51 @@ kbd {
 .dialogue-item.active {
     background-color: var(--bg-surface-active);
     border-left: 3px solid var(--brand-emerald);
-    padding-left: 9px;
+    padding-left: 11px;
 }
 
 .diag-id-cell {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
+}
+
+.diag-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .diag-title {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 .diag-channel-sub {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 11.5px;
+    color: var(--text-secondary);
 }
 
 .voice-call-tag {
-    color: var(--status-warning-text);
-    font-weight: 500;
-}
-
-.diag-lang-cell {
-    display: flex;
-    align-items: center;
-}
-
-.diag-score-cell {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+    color: var(--brand-emerald);
+    font-weight: 600;
 }
 
 .diag-score {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 11px;
-    padding: 2px 7px;
+    font-size: 11.5px;
+    padding: 3px 8px;
     border-radius: var(--radius-sm);
     background-color: var(--status-na-bg);
     color: var(--text-secondary);
     border: 1px solid var(--border-subtle);
+    white-space: nowrap;
 }
 
 .score-good {
@@ -804,12 +609,12 @@ kbd {
 }
 
 /* ==========================================================================
-   4. MIDDLE & RIGHT PANELS (Split-Screen Transcript & Real Audio Player)
+   4. ЦЕНТРАЛЬНАЯ КОЛОНКА: ПЕРЕПИСКА КАК В TELEGRAM + АУДИОПЛЕЕР ЗВОНКА
    ========================================================================== */
 .transcript-section {
     height: 100%;
     overflow: hidden;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-chat-canvas);
     border-right: 1px solid var(--border-subtle);
 }
 
@@ -824,11 +629,6 @@ kbd {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: var(--bg-primary);
-}
-
-.scorecard-card {
-    background-color: var(--bg-surface);
 }
 
 .card-header {
@@ -844,25 +644,23 @@ kbd {
 .header-buttons {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
 }
 
-.card-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 3px;
-    display: flex;
+.toggle-tech-label {
+    display: inline-flex;
     align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
 }
 
 .dialogue-title-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .card-header h3 {
@@ -876,27 +674,25 @@ kbd {
     gap: 5px;
 }
 
-/* Моноширинные теги */
 .badge {
     font-family: var(--font-mono);
     font-size: 10.5px;
-    font-weight: 500;
+    font-weight: 600;
     padding: 1px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     border: 1px solid var(--border-subtle);
     background-color: var(--bg-surface-elevated);
     color: var(--text-secondary);
 }
 
-.badge-ru { color: #3b82f6; border-color: rgba(59, 130, 246, 0.28); background: rgba(59, 130, 246, 0.1); }
+.badge-ru { color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.1); }
 .badge-kz { color: var(--brand-emerald); border-color: var(--border-emerald); background: var(--brand-emerald-glow); }
 .badge-en { color: var(--status-warning-text); border-color: var(--status-warning-border); background: var(--status-warning-bg); }
-.badge-chat { color: var(--text-secondary); }
-.badge-call { color: var(--status-warning-text); border-color: var(--status-warning-border); background: var(--status-warning-bg); }
+.badge-call { color: var(--brand-emerald); border-color: var(--border-emerald); background: var(--brand-emerald-glow); }
 
-/* Панель реальной аудиозаписи звонка */
+/* Аудиоплеер звонка */
 .audio-banner {
-    background-color: var(--bg-surface-elevated);
+    background-color: var(--bg-surface);
     border-bottom: 1px solid var(--border-emerald);
     padding: 8px 16px;
     display: flex;
@@ -908,29 +704,26 @@ kbd {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
 }
 
 .audio-info {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
 }
 
 .audio-live-badge {
-    font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    border-radius: 4px;
     background-color: var(--status-success-bg);
     color: var(--status-success-text);
     border: 1px solid var(--status-success-border);
 }
 
 .audio-sync-hint {
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--text-secondary);
 }
 
@@ -940,25 +733,57 @@ kbd {
     filter: var(--audio-filter);
 }
 
-/* Стенограмма диалога с номерами реплик и синхронизацией со звуком */
+/* Лента сообщений в стиле Telegram: Клиент слева, Оператор справа */
 .transcript-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 14px 16px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    background-color: var(--bg-primary);
+    gap: 10px;
+    background-color: var(--bg-chat-canvas);
 }
 
 .msg-row {
     display: flex;
     flex-direction: column;
-    padding: 10px 12px;
-    border-radius: var(--radius-md);
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 12px;
     border: 1px solid var(--border-subtle);
-    background-color: var(--msg-client-bg);
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: transform 0.12s ease, border-color 0.15s ease;
+}
+
+/* Сообщения КЛИЕНТА — слева */
+.msg-client {
+    align-self: flex-start;
+    background-color: var(--bubble-client-bg);
+    border-color: var(--bubble-client-border);
+    border-bottom-left-radius: 3px;
+}
+
+/* Сообщения ОПЕРАТОРА — справа (изумрудный оттенок как исходящие в Telegram) */
+.msg-operator {
+    align-self: flex-end;
+    background-color: var(--bubble-op-bg);
+    border-color: var(--bubble-op-border);
+    border-bottom-right-radius: 3px;
+}
+
+/* Служебные логи и IVR-бот (скрыты по умолчанию, чтобы не путать специалиста!) */
+.msg-bot, .msg-system {
+    align-self: center;
+    max-width: 92%;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border: 1px dashed var(--border-subtle);
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+.msg-row.hidden-tech-msg {
+    display: none !important;
 }
 
 .msg-row.clickable-audio-row {
@@ -966,123 +791,56 @@ kbd {
 }
 
 .msg-row.clickable-audio-row:hover {
-    border-color: var(--border-emerald);
+    border-color: var(--brand-emerald);
 }
 
 .msg-row.playing-now {
     border-color: var(--brand-emerald) !important;
-    box-shadow: inset 0 0 0 1px var(--brand-emerald);
-}
-
-.msg-operator {
-    border-left: 3px solid var(--brand-emerald);
-    background-color: var(--msg-op-bg);
-}
-
-.msg-client {
-    border-left: 3px solid #64748b;
-    background-color: var(--msg-client-bg);
-}
-
-.msg-bot {
-    border-left: 3px dashed var(--status-warning-text);
-    background-color: var(--status-warning-bg);
-}
-
-.msg-system {
-    align-self: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-muted);
-    background-color: transparent;
-    border: 1px dashed var(--border-subtle);
-    padding: 4px 10px;
+    box-shadow: 0 0 0 2px var(--brand-emerald-glow);
 }
 
 .msg-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-size: 11px;
     margin-bottom: 4px;
 }
 
-.msg-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.msg-index {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    font-size: 10.5px;
-    color: var(--text-muted);
-    padding: 0 4px;
-    background-color: var(--bg-surface-elevated);
-    border-radius: 3px;
-}
-
-.speaker-operator { color: var(--brand-emerald); font-weight: 600; font-size: 11.5px; }
-.speaker-client { color: var(--text-primary); font-weight: 600; font-size: 11.5px; }
-.speaker-bot { color: var(--status-warning-text); font-weight: 600; font-size: 11.5px; }
-
-.msg-header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+.speaker-operator { color: var(--brand-emerald); font-weight: 700; }
+.speaker-client { color: var(--text-secondary); font-weight: 700; }
+.speaker-bot { color: var(--status-warning-text); font-weight: 600; }
 
 .msg-seek-pill {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     color: var(--brand-emerald);
     background-color: var(--brand-emerald-glow);
-    border: 1px solid var(--border-emerald);
-    padding: 0 5px;
-    border-radius: 3px;
-}
-
-.msg-tts-btn {
-    background: transparent;
-    border: 1px solid var(--border-subtle);
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    padding: 0 5px;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.msg-tts-btn:hover {
-    color: var(--brand-emerald);
-    border-color: var(--border-emerald);
+    padding: 1px 6px;
+    border-radius: 4px;
 }
 
 .msg-time {
     font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-muted);
 }
 
 .msg-text {
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--text-primary);
-    line-height: 1.5;
+    line-height: 1.48;
     word-break: break-word;
 }
 
-/* Подсветка реплики при клике на цитату нарушения */
 .msg-highlight {
     background-color: var(--status-fatal-bg) !important;
-    border-color: var(--status-fatal-text) !important;
-    box-shadow: inset 0 0 0 1px var(--status-fatal-border);
+    border: 2px solid var(--status-fatal-text) !important;
 }
 
 /* ==========================================================================
-   5. SCORECARD SECTION (Right Pane — 8 Criteria + Unified Appeal Trigger)
+   5. ПРАВАЯ КОЛОНКА: ЧЕК-ЛИСТ ОЦЕНКИ (Чистые карточки критериев)
    ========================================================================== */
 .scorecard-header-right {
     display: flex;
@@ -1093,14 +851,13 @@ kbd {
 .total-score-pill {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     padding: 3px 10px;
     border-radius: var(--radius-sm);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-emerald);
-    white-space: nowrap;
+    background-color: var(--status-success-bg);
+    color: var(--status-success-text);
+    border: 1px solid var(--status-success-border);
 }
 
 .alert-fatal {
@@ -1109,15 +866,15 @@ kbd {
     border-left: 3px solid var(--status-fatal-text);
     color: var(--status-fatal-text);
     padding: 8px 12px;
-    font-size: 11.5px;
+    font-size: 12px;
     margin: 10px 12px 0;
     border-radius: var(--radius-sm);
 }
 
 .alert-na {
-    background-color: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    border-left: 3px solid #3b82f6;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--brand-emerald);
     color: var(--text-secondary);
     padding: 8px 12px;
     font-size: 11.5px;
@@ -1128,10 +885,11 @@ kbd {
 .scorecard-list {
     flex: 1;
     overflow-y: auto;
-    padding: 10px 12px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    background-color: var(--bg-surface);
 }
 
 .crit-card {
@@ -1142,20 +900,11 @@ kbd {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    transition: border-color 0.14s ease;
-}
-
-.crit-card:hover {
-    border-color: var(--border-strong);
 }
 
 .crit-card.fatal-active {
     border-color: var(--status-fatal-border);
     background-color: var(--status-fatal-bg);
-}
-
-.crit-card.na-active {
-    opacity: 0.75;
 }
 
 .crit-header {
@@ -1173,7 +922,6 @@ kbd {
 
 .crit-weight-tag {
     font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
     font-size: 10.5px;
     color: var(--text-muted);
     margin-top: 2px;
@@ -1184,8 +932,8 @@ kbd {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     font-size: 11px;
-    padding: 2px 7px;
-    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    border-radius: 4px;
     white-space: nowrap;
     border: 1px solid var(--border-subtle);
 }
@@ -1199,7 +947,7 @@ kbd {
 .crit-quote-btn {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-emerald);
-    border-left: 2px solid var(--brand-emerald);
+    border-left: 3px solid var(--brand-emerald);
     border-radius: var(--radius-sm);
     padding: 6px 10px;
     font-size: 11.5px;
@@ -1209,7 +957,6 @@ kbd {
     display: flex;
     align-items: baseline;
     gap: 6px;
-    transition: background-color 0.12s ease;
 }
 
 .crit-quote-btn:hover {
@@ -1225,25 +972,22 @@ kbd {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
+    font-size: 11px;
     cursor: pointer;
     padding: 2px 4px;
-    border-radius: 3px;
-    transition: color 0.12s ease, background-color 0.12s ease;
 }
 
 .btn-appeal-inline:hover {
     color: var(--brand-emerald);
-    background-color: var(--brand-emerald-glow);
+    text-decoration: underline;
 }
 
 /* ==========================================================================
-   6. TAB 2 (APPEALS) & TAB 3 (CHECKLIST MATRIX)
+   6. ВКЛАДКИ 2 И 3
    ========================================================================== */
 .pres-split-page {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 300px 1fr;
     height: 100%;
     overflow: hidden;
 }
@@ -1254,30 +998,24 @@ kbd {
     padding: 20px 18px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    overflow-y: auto;
+    gap: 12px;
 }
 
 .pres-wing-tag {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 600;
-    letter-spacing: 0.08em;
     color: var(--brand-emerald);
-    text-transform: uppercase;
 }
 
 .pres-left-Wing h2 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
 }
 
 .pres-wing-sub {
     font-size: 12.5px;
     color: var(--text-secondary);
-    line-height: 1.5;
 }
 
 .pres-info-card {
@@ -1292,8 +1030,6 @@ kbd {
     font-size: 10px;
     font-weight: 600;
     color: var(--brand-emerald);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
     margin-bottom: 4px;
 }
 
@@ -1301,21 +1037,11 @@ kbd {
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 4px;
-    color: var(--text-primary);
 }
 
 .pres-info-card p {
     font-size: 12px;
     color: var(--text-secondary);
-}
-
-.pres-info-card code {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--brand-emerald);
-    background-color: var(--bg-surface);
-    padding: 1px 4px;
-    border-radius: 3px;
 }
 
 .pres-right-Wing {
@@ -1325,39 +1051,26 @@ kbd {
     height: 100%;
 }
 
-.table-responsive {
-    overflow-x: auto;
-    flex: 1;
-}
-
 .d365-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
+    background-color: var(--bg-surface);
 }
 
 .d365-table th {
-    background-color: var(--bg-surface);
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
     text-align: left;
-    padding: 9px 14px;
-    font-weight: 500;
-    font-size: 10.5px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 11.5px;
     border-bottom: 1px solid var(--border-subtle);
 }
 
 .d365-table td {
     padding: 10px 14px;
     border-bottom: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    vertical-align: middle;
-}
-
-.d365-table tr:hover {
-    background-color: var(--bg-surface-elevated);
 }
 
 .criteria-grid {
@@ -1366,28 +1079,24 @@ kbd {
     gap: 12px;
     padding: 14px;
     overflow-y: auto;
+    background-color: var(--bg-surface);
 }
 
 .criteria-edit-card {
-    background-color: var(--bg-surface);
+    background-color: var(--bg-primary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    transition: border-color 0.14s ease;
-}
-
-.criteria-edit-card:hover {
-    border-color: var(--border-emerald);
 }
 
 /* ==========================================================================
-   7. BUTTONS
+   7. КНОПКИ И МОДАЛЬНЫЕ ОКНА
    ========================================================================== */
 .btn {
-    padding: 5px 11px;
+    padding: 6px 12px;
     border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 500;
@@ -1397,11 +1106,10 @@ kbd {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: all 0.12s ease;
 }
 
 .btn-sm {
-    padding: 4px 9px;
+    padding: 4px 10px;
     font-size: 11.5px;
 }
 
@@ -1411,33 +1119,17 @@ kbd {
     border-color: var(--brand-emerald);
 }
 
-.btn-primary:hover {
-    background-color: var(--brand-emerald);
-}
-
 .btn-secondary {
     background-color: var(--bg-surface-elevated);
     border-color: var(--border-subtle);
     color: var(--text-primary);
 }
 
-.btn-secondary:hover {
-    border-color: var(--border-strong);
-}
-
-.chevron-down {
-    font-size: 10px;
-    color: var(--text-muted);
-}
-
-/* ==========================================================================
-   8. FOOTER BAR
-   ========================================================================== */
 .pres-footer {
     background-color: var(--bg-surface);
     color: var(--text-muted);
     height: 28px;
-    padding: 0 16px;
+    padding: 0 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1457,27 +1149,13 @@ kbd {
     height: 6px;
     border-radius: 50%;
     background-color: var(--brand-emerald);
-    box-shadow: 0 0 6px var(--brand-emerald);
 }
 
-.mono-footer-item {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--text-secondary);
-}
-
-.footer-sep {
-    color: var(--border-strong);
-}
-
-/* ==========================================================================
-   9. MODALS & COMMAND PALETTE
-   ========================================================================== */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(5, 8, 7, 0.72);
-    backdrop-filter: blur(4px);
+    background: rgba(5, 8, 7, 0.65);
+    backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1490,7 +1168,7 @@ kbd {
     width: 480px;
     max-width: 92vw;
     border: 1px solid var(--border-strong);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     overflow: hidden;
 }
 
@@ -1504,9 +1182,8 @@ kbd {
 }
 
 .modal-header h3 {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 600;
-    color: var(--text-primary);
 }
 
 .modal-close {
@@ -1515,10 +1192,6 @@ kbd {
     font-size: 18px;
     cursor: pointer;
     color: var(--text-secondary);
-}
-
-.modal-close:hover {
-    color: var(--text-primary);
 }
 
 .modal-body {
@@ -1530,7 +1203,7 @@ kbd {
 
 .modal-body label {
     display: block;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
     margin-bottom: 4px;
@@ -1555,11 +1228,7 @@ kbd {
     gap: 8px;
 }
 
-/* Command Palette (cmdk) */
-.cmdk-card {
-    width: 540px;
-}
-
+.cmdk-card { width: 520px; }
 .cmdk-input-wrap {
     display: flex;
     align-items: center;
@@ -1568,36 +1237,19 @@ kbd {
     border-bottom: 1px solid var(--border-subtle);
     background-color: var(--bg-primary);
 }
-
-.cmdk-search-icon {
-    font-family: var(--font-mono);
-    font-size: 15px;
-    color: var(--brand-emerald);
-}
-
 .cmdk-input {
     flex: 1;
     background: transparent;
     border: none;
     outline: none;
     color: var(--text-primary);
-    font-family: var(--font-sans);
     font-size: 13px;
 }
-
-.cmdk-esc {
-    cursor: pointer;
-}
-
 .cmdk-results {
-    max-height: 320px;
+    max-height: 300px;
     overflow-y: auto;
     padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
 }
-
 .cmdk-item {
     display: flex;
     align-items: center;
@@ -1605,73 +1257,31 @@ kbd {
     padding: 8px 10px;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    color: var(--text-primary);
     font-size: 12.5px;
 }
-
 .cmdk-item:hover {
     background-color: var(--bg-surface-elevated);
 }
 
-.form-row {
-    display: flex;
-    gap: 10px;
-}
-
-.half {
-    flex: 1;
-}
-
-.checkbox-group {
-    display: flex;
-    align-items: center;
-}
-
-.checkbox-group label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text-primary);
-    margin-bottom: 0;
-}
-
+.form-row { display: flex; gap: 10px; }
+.half { flex: 1; }
+.checkbox-group { display: flex; align-items: center; }
+.checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; margin-bottom: 0; }
 .empty-placeholder {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
     color: var(--text-muted);
-    text-align: center;
     padding: 32px;
-    gap: 8px;
 }
-
-.placeholder-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--brand-emerald);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
 .quote-box {
     background-color: var(--bg-primary);
     padding: 8px 10px;
-    border-left: 2px solid var(--brand-emerald);
-    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--brand-emerald);
+    border-radius: 4px;
     margin-top: 4px;
     font-style: italic;
-    color: var(--text-secondary);
     display: block;
 }
-
-.review-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-}
+.review-meta { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }

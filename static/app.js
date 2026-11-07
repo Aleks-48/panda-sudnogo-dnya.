@@ -1,6 +1,6 @@
 // ==========================================================================
-// FREEDOM BROKER CQA v2.0 — FRONTEND CONTROLLER
-// Real Audio Sync + Speech Synthesis + Dark/Light Theme + Step-by-Step UX
+// FREEDOM BROKER CQA v2.0 — CLEAN TELEGRAM-STYLE SPECIALIST INTERFACE
+// Client Left / Operator Right + Hidden IVR Noise + Real MP3 Sync + Dual Theme
 // ==========================================================================
 
 let currentDialogueId = null;
@@ -9,6 +9,7 @@ let currentEvaluationData = null;
 let activeAppealCriterion = null;
 let allCachedDialogues = [];
 let currentTranscriptOffsets = [];
+let showSystemMessages = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     initTheme();
@@ -23,9 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
     loadAppeals();
 });
 
-// 0. Theme Switcher (Dark Latverian Titanium <-> Light Executive Daylight)
+// 0. Переключатель темы (Темная / Светлая)
 function initTheme() {
-    const saved = localStorage.getItem("cqa_theme") || "dark";
+    const saved = localStorage.getItem("cqa_theme") || "light";
     applyTheme(saved);
 
     const btn = document.getElementById("btn-theme-toggle");
@@ -47,19 +48,19 @@ function applyTheme(mode) {
         html.classList.remove("dark");
         html.classList.add("light");
         if (icon) icon.textContent = "☾";
-        if (label) label.textContent = "Темная";
+        if (label) label.textContent = "Темная тема";
         if (logo) logo.src = "/static/freedom_logo.svg";
     } else {
         html.classList.remove("light");
         html.classList.add("dark");
         if (icon) icon.textContent = "☀";
-        if (label) label.textContent = "Светлая";
+        if (label) label.textContent = "Светлая тема";
         if (logo) logo.src = "/static/freedom_logo_light.svg";
     }
     localStorage.setItem("cqa_theme", mode);
 }
 
-// 1. Tab Navigation & Keyboard Shortcuts (1, 2, 3)
+// 1. Вкладки навигации
 function initTabs() {
     const tabs = document.querySelectorAll(".nav-tab");
     const slideInd = document.getElementById("pres-slide-indicator");
@@ -81,7 +82,7 @@ function initTabs() {
     });
 }
 
-// 2. Action Buttons & Unified Appeal Trigger
+// 2. Кнопки действий и тумблер служебных логов
 function initActionButtons() {
     document.getElementById("btn-run-eval").addEventListener("click", () => {
         if (currentDialogueId) runEvaluation(currentDialogueId);
@@ -120,15 +121,18 @@ function initActionButtons() {
         });
     }
 
-    const speakBtn = document.getElementById("btn-speak-selection");
-    if (speakBtn) {
-        speakBtn.addEventListener("click", () => {
-            speakCurrentDialogueExcerpt();
+    const sysToggle = document.getElementById("toggle-system-msgs");
+    if (sysToggle) {
+        sysToggle.addEventListener("change", () => {
+            showSystemMessages = sysToggle.checked;
+            document.querySelectorAll(".msg-tech-item").forEach(el => {
+                el.classList.toggle("hidden-tech-msg", !showSystemMessages);
+            });
         });
     }
 }
 
-// 3. System Dropdown & Cmd+K Command Palette
+// 3. Сервисное меню и горячие клавиши
 function initDropdownAndHotkeys() {
     const opsBtn = document.getElementById("btn-ops-menu");
     const opsMenu = document.getElementById("ops-dropdown");
@@ -145,7 +149,10 @@ function initDropdownAndHotkeys() {
     const cmdkBtn = document.getElementById("btn-cmdk");
     const cmdkInput = document.getElementById("cmdk-input");
     if (cmdkBtn) {
-        cmdkBtn.addEventListener("click", openCmdkModal);
+        cmdkBtn.addEventListener("click", () => {
+            closeDropdowns();
+            openCmdkModal();
+        });
     }
     if (cmdkInput) {
         cmdkInput.addEventListener("input", () => renderCmdkResults(cmdkInput.value));
@@ -160,14 +167,6 @@ function initDropdownAndHotkeys() {
         if (e.key === "Escape") {
             ["cmdk-modal", "appeal-modal", "decision-modal", "criterion-modal"].forEach(closeModal);
             closeDropdowns();
-            if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-            return;
-        }
-        const tag = (document.activeElement && document.activeElement.tagName) || "";
-        if (!["INPUT", "TEXTAREA", "SELECT"].includes(tag)) {
-            if (e.key === "1") document.querySelector('[data-tab="dialogues-tab"]')?.click();
-            if (e.key === "2") document.querySelector('[data-tab="appeals-tab"]')?.click();
-            if (e.key === "3") document.querySelector('[data-tab="checklist-tab"]')?.click();
         }
     });
 }
@@ -193,30 +192,15 @@ function renderCmdkResults(query) {
     const q = (query || "").trim().toLowerCase();
     container.innerHTML = "";
 
-    const quickCommands = [
-        { label: "🎙 Показать только Звонки с реальной аудиозаписью (5)", hint: "Аудио MP3", action: () => { setChannelQuickFilter("voice call"); closeModal("cmdk-modal"); } },
-        { label: "⚠️ Фильтр: Показать только фатальные ошибки (FATAL)", hint: "Критерий №8", action: () => { setKpiFilter("fatal"); closeModal("cmdk-modal"); } },
-        { label: "☀/☾ Переключить тему (Темная / Светлая)", hint: "Тема UI", action: () => { document.getElementById("btn-theme-toggle")?.click(); closeModal("cmdk-modal"); } },
-        { label: "Сбросить все фильтры диалогов", hint: "Все 65", action: () => { setChannelQuickFilter(""); setKpiFilter(""); closeModal("cmdk-modal"); } }
-    ];
-
-    quickCommands.filter(c => !q || c.label.toLowerCase().includes(q)).forEach(cmd => {
-        const div = document.createElement("div");
-        div.className = "cmdk-item";
-        div.innerHTML = `<span>${cmd.label}</span><span class="mono-hint">${cmd.hint}</span>`;
-        div.addEventListener("click", cmd.action);
-        container.appendChild(div);
-    });
-
     const matches = allCachedDialogues
-        .filter(d => !q || d.conversation_id.toLowerCase().includes(q) || d.language.toLowerCase().includes(q) || d.channel.toLowerCase().includes(q))
-        .slice(0, 12);
+        .filter(d => !q || d.conversation_id.toLowerCase().includes(q) || d.language.toLowerCase().includes(q))
+        .slice(0, 15);
 
     matches.forEach(d => {
         const div = document.createElement("div");
         div.className = "cmdk-item";
-        const scoreStr = d.has_fatal_flaw ? "FATAL" : (d.total_score !== null ? `${Number(d.total_score).toFixed(1)}%` : "--");
-        const chIcon = d.channel === "voice call" ? "🎙 Звонок (MP3)" : "💬 Чат";
+        const scoreStr = d.has_fatal_flaw ? "⚠️ ОШИБКА" : (d.total_score !== null ? `${Number(d.total_score).toFixed(0)}%` : "--");
+        const chIcon = d.channel === "voice call" ? "🎙 Звонок" : "💬 Чат";
         div.innerHTML = `
             <span class="tabular-nums"><strong>${d.conversation_id}</strong> · ${d.language} · ${chIcon}</span>
             <span class="mono-hint tabular-nums">${scoreStr}</span>
@@ -230,110 +214,82 @@ function renderCmdkResults(query) {
     });
 }
 
-// 4. Filters, Channel Quick Pills & Interactive Tremor KPI Cards
+// 4. Простые фильтры в 1 клик (Все / Звонки / Чаты / Ошибки)
 function initFilters() {
     const filterLang = document.getElementById("filter-lang");
     const filterChannel = document.getElementById("filter-channel");
     const filterStatus = document.getElementById("filter-status");
+    const searchInput = document.getElementById("filter-search");
 
-    filterLang.addEventListener("change", loadDialogues);
-    filterChannel.addEventListener("change", () => {
-        syncChannelPills(filterChannel.value);
-        loadDialogues();
-    });
+    filterLang.addEventListener("change", () => loadDialogues(true));
 
-    if (filterStatus) filterStatus.addEventListener("change", () => {
-        syncKpiActiveCards(filterStatus.value);
-        loadDialogues();
-    });
-
-    // Quick Channel Segmented Pills (Все / Звонки с аудио / Чаты)
     document.querySelectorAll(".channel-pill").forEach(pill => {
         pill.addEventListener("click", () => {
-            const ch = pill.getAttribute("data-channel") || "";
-            setChannelQuickFilter(ch);
+            const mode = pill.getAttribute("data-mode") || "all";
+            applyQuickMode(mode);
         });
     });
 
-    const searchInput = document.getElementById("filter-search");
     if (searchInput) {
         searchInput.addEventListener("input", () => {
             renderDialoguesList(allCachedDialogues);
         });
     }
 
-    const kpiFatal = document.getElementById("kpi-card-fatal");
-    if (kpiFatal) {
-        kpiFatal.addEventListener("click", () => {
-            document.querySelector('[data-tab="dialogues-tab"]')?.click();
-            const nextVal = filterStatus && filterStatus.value === "fatal" ? "" : "fatal";
-            setKpiFilter(nextVal);
-        });
-    }
+    document.getElementById("kpi-card-total")?.addEventListener("click", () => {
+        document.querySelector('[data-tab="dialogues-tab"]')?.click();
+        filterLang.value = "";
+        if (searchInput) searchInput.value = "";
+        applyQuickMode("all");
+    });
 
-    const kpiEval = document.getElementById("kpi-card-evaluated");
-    if (kpiEval) {
-        kpiEval.addEventListener("click", () => {
-            document.querySelector('[data-tab="dialogues-tab"]')?.click();
-            const nextVal = filterStatus && filterStatus.value === "evaluated" ? "" : "evaluated";
-            setKpiFilter(nextVal);
-        });
-    }
+    document.getElementById("kpi-card-evaluated")?.addEventListener("click", () => {
+        document.querySelector('[data-tab="dialogues-tab"]')?.click();
+        applyQuickMode("all");
+    });
 
-    const kpiTotal = document.getElementById("kpi-card-total");
-    if (kpiTotal) {
-        kpiTotal.addEventListener("click", () => {
-            document.querySelector('[data-tab="dialogues-tab"]')?.click();
-            filterLang.value = "";
-            filterChannel.value = "";
-            syncChannelPills("");
-            if (searchInput) searchInput.value = "";
-            setKpiFilter("");
-        });
-    }
+    document.getElementById("kpi-card-fatal")?.addEventListener("click", () => {
+        document.querySelector('[data-tab="dialogues-tab"]')?.click();
+        const isAlreadyFatal = filterStatus.value === "fatal";
+        applyQuickMode(isAlreadyFatal ? "all" : "fatal");
+    });
 
-    const kpiAppeals = document.getElementById("kpi-card-appeals");
-    if (kpiAppeals) {
-        kpiAppeals.addEventListener("click", () => {
-            const appealsTabBtn = document.querySelector('[data-tab="appeals-tab"]');
-            if (appealsTabBtn) appealsTabBtn.click();
-        });
-    }
-}
-
-function setChannelQuickFilter(channelVal) {
-    const filterChannel = document.getElementById("filter-channel");
-    if (filterChannel) filterChannel.value = channelVal;
-    syncChannelPills(channelVal);
-    loadDialogues(true);
-}
-
-function syncChannelPills(channelVal) {
-    document.querySelectorAll(".channel-pill").forEach(pill => {
-        const val = pill.getAttribute("data-channel") || "";
-        pill.classList.toggle("active", val === channelVal);
+    document.getElementById("kpi-card-appeals")?.addEventListener("click", () => {
+        document.querySelector('[data-tab="appeals-tab"]')?.click();
     });
 }
 
-function setKpiFilter(statusValue) {
+function applyQuickMode(mode) {
+    const filterChannel = document.getElementById("filter-channel");
     const filterStatus = document.getElementById("filter-status");
-    if (filterStatus) filterStatus.value = statusValue;
-    syncKpiActiveCards(statusValue);
-    loadDialogues();
-}
 
-function syncKpiActiveCards(statusValue) {
+    document.querySelectorAll(".channel-pill").forEach(p => {
+        p.classList.toggle("active", p.getAttribute("data-mode") === mode);
+    });
     document.querySelectorAll(".kpi-item").forEach(el => el.classList.remove("active-filter"));
-    if (statusValue === "fatal") {
+
+    if (mode === "voice") {
+        filterChannel.value = "voice call";
+        filterStatus.value = "";
+        document.getElementById("kpi-card-total")?.classList.add("active-filter");
+    } else if (mode === "chat") {
+        filterChannel.value = "agent chat";
+        filterStatus.value = "";
+        document.getElementById("kpi-card-total")?.classList.add("active-filter");
+    } else if (mode === "fatal") {
+        filterChannel.value = "";
+        filterStatus.value = "fatal";
         document.getElementById("kpi-card-fatal")?.classList.add("active-filter");
-    } else if (statusValue === "evaluated") {
-        document.getElementById("kpi-card-evaluated")?.classList.add("active-filter");
     } else {
+        filterChannel.value = "";
+        filterStatus.value = "";
         document.getElementById("kpi-card-total")?.classList.add("active-filter");
     }
+
+    loadDialogues(true);
 }
 
-// 5. Load KPI Stats
+// 5. Загрузка статистики KPI
 async function loadStats() {
     try {
         const res = await fetch("/api/stats");
@@ -356,12 +312,11 @@ async function loadStats() {
     }
 }
 
-// 6. Load & Render High-Density Dialogue Table (Voice Calls Prioritized First!)
+// 6. Загрузка списка диалогов
 async function loadDialogues(autoSelectFirst = false) {
     const lang = document.getElementById("filter-lang").value;
     const channel = document.getElementById("filter-channel").value;
-    const filterStatus = document.getElementById("filter-status");
-    const status = filterStatus ? filterStatus.value : "";
+    const status = document.getElementById("filter-status").value;
 
     let url = "/api/dialogues?";
     if (lang) url += `language=${encodeURIComponent(lang)}&`;
@@ -372,7 +327,7 @@ async function loadDialogues(autoSelectFirst = false) {
         const res = await fetch(url);
         const dialogues = await res.json();
 
-        // Sort so voice calls with real audio appear at the very top when viewing all
+        // Звонки с реальной записью показываем сверху, чтобы специалист сразу их видел
         dialogues.sort((a, b) => {
             const aVoice = a.channel === "voice call" ? 0 : 1;
             const bVoice = b.channel === "voice call" ? 0 : 1;
@@ -400,13 +355,10 @@ function renderDialoguesList(dialogues) {
         ? dialogues.filter(d => d.conversation_id.toLowerCase().includes(query) || d.language.toLowerCase().includes(query))
         : dialogues;
 
-    const countBadge = document.getElementById("visible-count-badge");
-    if (countBadge) countBadge.textContent = `${filtered.length} зап.`;
-
     container.innerHTML = "";
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Диалоги по фильтру не найдены</div>`;
+        container.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12.5px;">Диалоги не найдены</div>`;
         return;
     }
 
@@ -414,32 +366,30 @@ function renderDialoguesList(dialogues) {
         const item = document.createElement("div");
         item.className = `dialogue-item ${currentDialogueId === d.conversation_id ? 'active' : ''}`;
 
-        let scoreHtml = `<span class="diag-score tabular-nums">N/A</span>`;
+        let scoreHtml = `<span class="diag-score tabular-nums">--</span>`;
         if (d.total_score !== null) {
             let scoreClass = d.total_score >= 80 ? "score-good" : (d.total_score >= 50 ? "score-mid" : "score-bad");
             if (d.has_fatal_flaw) {
-                scoreHtml = `<span class="diag-score score-bad tabular-nums">FATAL · ${Number(d.total_score).toFixed(0)}%</span>`;
+                scoreHtml = `<span class="diag-score score-bad tabular-nums">⚠️ ОШИБКА · ${Number(d.total_score).toFixed(0)}%</span>`;
             } else {
-                scoreHtml = `<span class="diag-score ${scoreClass} tabular-nums">${Number(d.total_score).toFixed(1)}%</span>`;
+                scoreHtml = `<span class="diag-score ${scoreClass} tabular-nums">${Number(d.total_score).toFixed(0)}%</span>`;
             }
         }
 
         const isVoice = d.channel === "voice call";
         const channelLabel = isVoice
-            ? `<span class="voice-call-tag">🎙 Звонок · Реальное аудио</span>`
-            : `💬 Чат поддержки`;
+            ? `<span class="voice-call-tag">🎙 Голосовой звонок (Аудио)</span>`
+            : `💬 Текстовый чат`;
 
         item.innerHTML = `
             <div class="diag-id-cell">
-                <div class="diag-title tabular-nums">${d.conversation_id}</div>
+                <div class="diag-title-row">
+                    <span class="diag-title tabular-nums">${d.conversation_id}</span>
+                    <span class="badge badge-${d.language.toLowerCase()}">${d.language}</span>
+                </div>
                 <div class="diag-channel-sub">${channelLabel}</div>
             </div>
-            <div class="diag-lang-cell">
-                <span class="badge badge-${d.language.toLowerCase()}">${d.language}</span>
-            </div>
-            <div class="diag-score-cell">
-                ${scoreHtml}
-            </div>
+            <div>${scoreHtml}</div>
         `;
 
         item.addEventListener("click", () => {
@@ -450,11 +400,10 @@ function renderDialoguesList(dialogues) {
     });
 }
 
-// 7. Select Single Dialogue & Render Split-Screen Inspector with Audio Sync
+// 7. Выбор диалога и отрисовка чата в стиле Telegram
 async function selectDialogue(cid) {
     currentDialogueId = cid;
     renderDialoguesList(allCachedDialogues);
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
     try {
         const res = await fetch(`/api/dialogues/${cid}`);
@@ -488,18 +437,14 @@ function renderDialogueDetails(dialogue) {
     document.getElementById("btn-run-eval").style.display = "inline-flex";
 
     const isVoice = dialogue.channel === "voice call" || Boolean(dialogue.audio_url);
-    const speakBtn = document.getElementById("btn-speak-selection");
-    if (speakBtn) {
-        speakBtn.style.display = isVoice ? "none" : "inline-flex";
-    }
 
     const badgesContainer = document.getElementById("current-dialogue-badges");
     badgesContainer.innerHTML = `
         <span class="badge badge-${dialogue.language.toLowerCase()}">${dialogue.language}</span>
-        <span class="badge ${isVoice ? 'badge-call' : 'badge-chat'}">${isVoice ? '🎙 Голосовой звонок (MP3)' : '💬 Чат'}</span>
+        <span class="badge ${isVoice ? 'badge-call' : 'badge-chat'}">${isVoice ? '🎙 Звонок с аудиозаписью' : '💬 Чат поддержки'}</span>
     `;
 
-    // Real MP3 Audio player via our backend proxy /api/audio/{cid}
+    // Реальный MP3 аудиоплеер
     const audioContainer = document.getElementById("audio-player-container");
     const audioPlayer = document.getElementById("voice-audio-player");
     if (isVoice) {
@@ -511,7 +456,6 @@ function renderDialogueDetails(dialogue) {
         audioPlayer.src = "";
     }
 
-    // Calculate relative audio offset (in seconds) for each transcript message
     const transcriptBody = document.getElementById("transcript-body");
     transcriptBody.innerHTML = "";
     currentTranscriptOffsets = [];
@@ -524,39 +468,39 @@ function renderDialogueDetails(dialogue) {
         }
     });
 
+    let techCount = 0;
+
     dialogue.transcript.forEach((msg, idx) => {
+        const spk = msg.speaker;
+        const isTech = spk === "system" || spk === "bot";
+        if (isTech) techCount++;
+
         const row = document.createElement("div");
         const ms = parseTimestampMs(msg.timestamp);
         const offsetSec = (firstMs !== null && ms !== null) ? Math.max(0, (ms - firstMs) / 1000) : idx * 4;
-        currentTranscriptOffsets.push({ idx, offsetSec, element: row });
+        currentTranscriptOffsets.push({ idx, offsetSec, element: row, isTech });
 
-        row.className = `msg-row msg-${msg.speaker} ${isVoice ? 'clickable-audio-row' : ''}`;
+        const hideClass = (isTech && !showSystemMessages) ? "hidden-tech-msg" : "";
+        row.className = `msg-row msg-${spk} ${isTech ? 'msg-tech-item' : ''} ${hideClass} ${isVoice ? 'clickable-audio-row' : ''}`;
         row.id = `msg-line-${idx}`;
         row.setAttribute("data-ts", msg.timestamp || "");
         row.setAttribute("data-offset", String(offsetSec));
         row.setAttribute("data-text", msg.text || "");
 
-        let speakerName = "Клиент";
-        if (msg.speaker === "operator") speakerName = "Оператор Freedom Broker";
-        if (msg.speaker === "bot") speakerName = "Автоинформатор IVR";
-        if (msg.speaker === "system") speakerName = "Система";
+        let speakerName = "👤 Клиент";
+        if (spk === "operator") speakerName = "🎧 Оператор Freedom Broker";
+        if (spk === "bot") speakerName = "🤖 Автоинформатор IVR";
+        if (spk === "system") speakerName = "⚙️ Системное событие";
 
-        const lineNum = String(idx + 1).padStart(2, "0");
-        const relTimeStr = formatSec(offsetSec);
-
-        const rightControlHtml = isVoice
-            ? `<span class="msg-seek-pill tabular-nums" title="Кликните, чтобы перемотать реальную запись на ${relTimeStr}">▶ ${relTimeStr}</span>`
-            : `<button type="button" class="msg-tts-btn" onclick="speakSingleLine(event, '${encodeURIComponent(msg.text)}', '${dialogue.language}')" title="Озвучить эту реплику">🔊</button>`;
+        const relTimeStr = isVoice ? formatSec(offsetSec) : (msg.timestamp || "");
+        const rightBadge = isVoice
+            ? `<span class="msg-seek-pill tabular-nums" title="Перемотать звонок на ${relTimeStr}">▶ ${relTimeStr}</span>`
+            : `<span class="msg-time tabular-nums">${relTimeStr}</span>`;
 
         row.innerHTML = `
             <div class="msg-header">
-                <div class="msg-header-left">
-                    <span class="msg-index tabular-nums">#${lineNum}</span>
-                    <span class="speaker-${msg.speaker}">${speakerName}</span>
-                </div>
-                <div class="msg-header-right">
-                    ${rightControlHtml}
-                </div>
+                <span class="speaker-${spk}">${speakerName}</span>
+                ${rightBadge}
             </div>
             <div class="msg-text">${msg.text}</div>
         `;
@@ -569,9 +513,12 @@ function renderDialogueDetails(dialogue) {
 
         transcriptBody.appendChild(row);
     });
+
+    const sysCountEl = document.getElementById("sys-msg-count");
+    if (sysCountEl) sysCountEl.textContent = String(techCount);
 }
 
-// Sync Audio Player with Transcript Rows
+// Перемотка реального звонка при клике на сообщение
 function seekAudioToSecond(offsetSec, rowElement) {
     const audioPlayer = document.getElementById("voice-audio-player");
     if (!audioPlayer || !audioPlayer.src) return;
@@ -605,11 +552,12 @@ function initAudioSyncListener() {
         const cur = audioPlayer.currentTime || 0;
         if (timeInd) timeInd.textContent = formatSec(cur);
 
-        // Highlight active transcript line matching current audio second
         let activeItem = null;
         for (let i = 0; i < currentTranscriptOffsets.length; i++) {
-            if (currentTranscriptOffsets[i].offsetSec <= cur + 0.5) {
-                activeItem = currentTranscriptOffsets[i];
+            const item = currentTranscriptOffsets[i];
+            if (item.isTech && !showSystemMessages) continue;
+            if (item.offsetSec <= cur + 0.5) {
+                activeItem = item;
             } else {
                 break;
             }
@@ -621,34 +569,7 @@ function initAudioSyncListener() {
     });
 }
 
-// Web Speech Synthesis for Chat Dialogues (when user wants text spoken aloud)
-window.speakSingleLine = function(e, encodedText, lang) {
-    e.stopPropagation();
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(decodeURIComponent(encodedText));
-    utter.lang = lang === "EN" ? "en-US" : (lang === "KZ" ? "kk-KZ" : "ru-RU");
-    utter.rate = 1.05;
-    window.speechSynthesis.speak(utter);
-};
-
-function speakCurrentDialogueExcerpt() {
-    if (!currentDialogueData || !("speechSynthesis" in window)) return;
-    if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        return;
-    }
-    const text = currentDialogueData.transcript
-        .filter(m => m.speaker !== "system")
-        .slice(0, 6)
-        .map(m => m.text)
-        .join(". ");
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = currentDialogueData.language === "EN" ? "en-US" : "ru-RU";
-    window.speechSynthesis.speak(utter);
-}
-
-// 8. Render 8-Criteria Scorecard
+// 8. Отрисовка карточки оценки (8 критериев)
 function renderScorecard(evalData) {
     const totalBadge = document.getElementById("scorecard-total-badge");
     const fatalAlert = document.getElementById("fatal-alert");
@@ -660,17 +581,10 @@ function renderScorecard(evalData) {
 
     if (!evalData) {
         totalBadge.textContent = "--%";
-        totalBadge.style.borderColor = "var(--border-subtle)";
-        totalBadge.style.color = "var(--text-secondary)";
         fatalAlert.style.display = "none";
         naNotice.style.display = "none";
         if (headerAppealBtn) headerAppealBtn.style.display = "none";
-        container.innerHTML = `
-            <div class="empty-placeholder">
-                <div class="placeholder-eyebrow">ОЖИДАЕТ ОЦЕНКИ</div>
-                <p>Нажмите <strong>«↻ Переоценить»</strong> в заголовке стенограммы для расчета баллов.</p>
-            </div>
-        `;
+        container.innerHTML = `<div class="empty-placeholder"><p>Нажмите «↻ Переоценить» для расчета баллов</p></div>`;
         return;
     }
 
@@ -678,18 +592,15 @@ function renderScorecard(evalData) {
 
     const needsReview = evalData.criteria_results.some(c => c.needs_review);
     totalBadge.textContent = needsReview
-        ? "ПРОВЕРКА"
-        : (evalData.total_score === null ? "N/A" : `${Number(evalData.total_score).toFixed(2)}%`);
+        ? "На проверке"
+        : (evalData.total_score === null ? "N/A" : `${Number(evalData.total_score).toFixed(1)}%`);
 
     if (evalData.has_fatal_flaw || evalData.total_score < 50) {
-        totalBadge.style.borderColor = "var(--status-fatal-border)";
-        totalBadge.style.color = "var(--status-fatal-text)";
+        totalBadge.className = "total-score-pill score-bad tabular-nums";
     } else if (evalData.total_score >= 80) {
-        totalBadge.style.borderColor = "var(--border-emerald)";
-        totalBadge.style.color = "var(--status-success-text)";
+        totalBadge.className = "total-score-pill score-good tabular-nums";
     } else {
-        totalBadge.style.borderColor = "var(--status-warning-border)";
-        totalBadge.style.color = "var(--status-warning-text)";
+        totalBadge.className = "total-score-pill score-mid tabular-nums";
     }
 
     fatalAlert.style.display = evalData.has_fatal_flaw ? "block" : "none";
@@ -697,39 +608,36 @@ function renderScorecard(evalData) {
     const hasNA = evalData.criteria_results.some(c => c.is_na);
     naNotice.style.display = hasNA ? "block" : "none";
 
-    evalData.criteria_results.forEach(crit => {
+    evalData.criteria_results.forEach((crit, index) => {
         const card = document.createElement("div");
         const isFatalTriggered = crit.is_fatal && crit.score === 1;
-        card.className = `crit-card ${isFatalTriggered ? 'fatal-active' : ''} ${crit.is_na ? 'na-active' : ''}`;
+        card.className = `crit-card ${isFatalTriggered ? 'fatal-active' : ''}`;
 
         let scoreBadgeClass = crit.score === crit.max_points ? "score-good" : (crit.score > 0 ? "score-mid" : "score-bad");
-        let scoreText = crit.is_fatal ? (crit.score === 1 ? "FATAL · ДА" : "0 · НЕТ") : `${crit.score} / ${crit.max_points}`;
+        let scoreText = crit.is_fatal
+            ? (crit.score === 1 ? "⚠️ Грубая ошибка" : "✓ Без нарушений")
+            : `${crit.score} из ${crit.max_points} б.`;
 
-        if (crit.is_fatal && crit.score === 0) {
-            scoreBadgeClass = "score-good";
-        } else if (crit.is_fatal && crit.score === 1) {
-            scoreBadgeClass = "score-bad";
-        }
+        if (crit.is_fatal && crit.score === 0) scoreBadgeClass = "score-good";
+        if (crit.is_fatal && crit.score === 1) scoreBadgeClass = "score-bad";
 
         if (crit.is_na) {
             scoreBadgeClass = "badge-chat";
-            scoreText = "N/A";
+            scoreText = "Неприменимо (N/A)";
         }
-
-        if (crit.needs_review) scoreText = "ПРОВЕРКА";
 
         let weightText = `Вес: ${crit.original_weight}%`;
         if (crit.is_na) {
-            weightText += ` → N/A (перераспределен)`;
+            weightText += ` → Не учитывается (перераспределен)`;
         } else if (crit.effective_weight && crit.effective_weight !== crit.original_weight) {
-            weightText += ` → Эфф. вес: ${crit.effective_weight}%`;
+            weightText += ` → С учетом N/A: ${crit.effective_weight}%`;
         }
 
         let quoteBtnHtml = "";
         if (crit.quote) {
             quoteBtnHtml = `
                 <button class="crit-quote-btn" onclick="scrollToQuote('${encodeURIComponent(crit.quote)}', '${crit.timestamp || ""}')">
-                    <span class="mono-hint">ЦИТАТА:</span>
+                    <span class="mono-hint">💬 Цитата:</span>
                     <span>«${crit.quote}»</span>
                 </button>
             `;
@@ -738,12 +646,12 @@ function renderScorecard(evalData) {
         card.innerHTML = `
             <div class="crit-header">
                 <div>
-                    <div class="crit-name">${crit.name}</div>
+                    <div class="crit-name">${index + 1}. ${crit.name}</div>
                     <div class="crit-weight-tag tabular-nums">${weightText}</div>
                 </div>
                 <span class="crit-score-badge ${scoreBadgeClass} tabular-nums">${scoreText}</span>
             </div>
-            <div class="crit-explanation">${crit.is_na ? `<em>Неприменимо (N/A): ${crit.na_reason}</em>` : crit.explanation}</div>
+            <div class="crit-explanation">${crit.is_na ? `<em>Причина N/A: ${crit.na_reason}</em>` : crit.explanation}</div>
             ${quoteBtnHtml}
             <div class="crit-actions">
                 <button class="btn-appeal-inline" onclick="openAppealModal('${crit.criterion_id}', '${encodeURIComponent(crit.name)}')">Оспорить пункт →</button>
@@ -754,7 +662,7 @@ function renderScorecard(evalData) {
     });
 }
 
-// 9. Scroll & Highlight Verbatim Quote in Transcript (+ Auto-Seek Audio if Voice Call!)
+// 9. Переход к цитате в чате + перемотка звонка
 window.scrollToQuote = function(encodedQuote, timestamp) {
     const quote = decodeURIComponent(encodedQuote).toLowerCase();
     const rows = document.querySelectorAll(".msg-row");
@@ -773,6 +681,9 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
     });
 
     if (targetRow) {
+        if (targetRow.classList.contains("hidden-tech-msg")) {
+            targetRow.classList.remove("hidden-tech-msg");
+        }
         targetRow.scrollIntoView({ behavior: "smooth", block: "center" });
         targetRow.classList.add("msg-highlight");
         const offsetSec = parseFloat(targetRow.getAttribute("data-offset") || "0");
@@ -785,7 +696,7 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
     }
 };
 
-// 10. Evaluation Actions
+// 10. Оценка и синхронизация
 async function runEvaluation(cid) {
     const btn = document.getElementById("btn-run-eval");
     btn.disabled = true;
@@ -807,7 +718,7 @@ async function runBatchEvaluation() {
     try {
         const res = await fetch("/api/evaluate_all", { method: "POST" });
         const data = await res.json();
-        alert(`Пакетная проверка завершена. Оценено диалогов: ${data.evaluated_count}`);
+        alert(`Проверено диалогов: ${data.evaluated_count}`);
         loadStats();
         loadDialogues();
         if (currentDialogueId) selectDialogue(currentDialogueId);
@@ -817,7 +728,7 @@ async function runBatchEvaluation() {
 }
 
 async function importDevData() {
-    const url = prompt("Введите URL GET API DEV или оставьте по умолчанию для локальной синхронизации:", "https://example.com/api/get_dataset?group_id=DEV");
+    const url = prompt("Введите URL GET API DEV:", "https://example.com/api/get_dataset?group_id=DEV");
     if (!url) return;
 
     try {
@@ -828,7 +739,7 @@ async function importDevData() {
         });
         const data = await res.json();
         if (data.status === "success") {
-            alert(`Синхронизировано записей: ${data.imported_records}`);
+            alert(`Загружено диалогов: ${data.imported_records}`);
             loadStats();
             loadDialogues();
         } else {
@@ -839,12 +750,9 @@ async function importDevData() {
     }
 }
 
-// 11. TAB 2: APPEALS WORKFLOW
+// 11. Вкладка 2: Апелляции
 window.openAppealModal = function(criterionId, encodedName) {
-    if (!currentEvaluationData) {
-        alert("Сначала выберите оцененный диалог.");
-        return;
-    }
+    if (!currentEvaluationData) return;
 
     const selectGroup = document.getElementById("appeal-criterion-select-group");
     const selectEl = document.getElementById("appeal-criterion-select");
@@ -852,11 +760,9 @@ window.openAppealModal = function(criterionId, encodedName) {
 
     if (criterionId && encodedName) {
         activeAppealCriterion = criterionId;
-        titleEl.style.display = "block";
         titleEl.textContent = `Диалог ${currentDialogueId} · ${decodeURIComponent(encodedName)}`;
         if (selectGroup) selectGroup.style.display = "none";
     } else {
-        titleEl.style.display = "block";
         titleEl.textContent = `Диалог: ${currentDialogueId}`;
         if (selectGroup && selectEl) {
             selectGroup.style.display = "block";
@@ -864,7 +770,7 @@ window.openAppealModal = function(criterionId, encodedName) {
             currentEvaluationData.criteria_results.forEach(c => {
                 const opt = document.createElement("option");
                 opt.value = c.criterion_id;
-                opt.textContent = `${c.name} (текущий балл: ${c.score}/${c.max_points})`;
+                opt.textContent = `${c.name} (сейчас: ${c.score}/${c.max_points})`;
                 selectEl.appendChild(opt);
             });
             activeAppealCriterion = selectEl.value;
@@ -879,7 +785,7 @@ window.openAppealModal = function(criterionId, encodedName) {
 async function submitAppeal() {
     const comment = document.getElementById("appeal-comment").value.trim();
     if (!comment) {
-        alert("Укажите аргументацию оператора для подачи апелляции.");
+        alert("Укажите комментарий оператора.");
         return;
     }
 
@@ -917,11 +823,11 @@ async function loadAppeals() {
 
         appeals.forEach(a => {
             const tr = document.createElement("tr");
-            let statusBadge = `<span class="diag-score score-mid">На рассмотрении</span>`;
+            let statusBadge = `<span class="diag-score score-mid">Ожидает решения</span>`;
             let actionHtml = `<button class="btn btn-primary btn-sm" onclick="openDecisionModal('${a.id}', '${a.conversation_id}', '${encodeURIComponent(a.criterion_name || a.criterion_id)}', '${encodeURIComponent(a.operator_comment)}', ${a.original_score})">Рассмотреть</button>`;
 
             if (a.status === "accepted") {
-                statusBadge = `<span class="diag-score score-good tabular-nums">Удовлетворена (${a.new_score} б.)</span>`;
+                statusBadge = `<span class="diag-score score-good tabular-nums">Принята (${a.new_score} б.)</span>`;
                 actionHtml = `<span class="mono-hint">${a.supervisor_comment || 'Пересчитано'}</span>`;
             } else if (a.status === "rejected") {
                 statusBadge = `<span class="diag-score score-bad">Отклонена</span>`;
@@ -931,8 +837,8 @@ async function loadAppeals() {
             tr.innerHTML = `
                 <td class="tabular-nums"><strong>${a.conversation_id}</strong></td>
                 <td>${a.criterion_name || a.criterion_id}</td>
-                <td class="tabular-nums">${a.original_score}</td>
-                <td><em>«${a.operator_comment}»</em></td>
+                <td class="tabular-nums">${a.original_score} б.</td>
+                <td>«${a.operator_comment}»</td>
                 <td>${statusBadge}</td>
                 <td style="text-align:right;">${actionHtml}</td>
             `;
@@ -949,8 +855,8 @@ window.openDecisionModal = function(appealId, convId, encCritName, encComment, o
     document.getElementById("review-conv-id").textContent = convId;
     document.getElementById("review-crit-name").textContent = decodeURIComponent(encCritName);
     document.getElementById("review-op-comment").textContent = decodeURIComponent(encComment);
-    document.getElementById("review-new-score").value = (origScore === 0 ? 1 : origScore + 1);
-    document.getElementById("review-comment").value = "Аргументация оператора подтверждена по стенограмме, балл пересмотрен.";
+    document.getElementById("review-new-score").value = (origScore === 5 ? 15 : 1);
+    document.getElementById("review-comment").value = "Аргументация оператора подтверждена по тексту переписки, оценка пересмотрена.";
     document.getElementById("decision-modal").style.display = "flex";
 };
 
@@ -981,7 +887,7 @@ async function saveSupervisorDecision() {
     }
 }
 
-// 12. TAB 3: CHECKLIST MATRIX BUILDER
+// 12. Вкладка 3: Редактор критериев
 async function loadCriteria() {
     try {
         const res = await fetch("/api/criteria");
@@ -989,19 +895,19 @@ async function loadCriteria() {
         const container = document.getElementById("criteria-editor-list");
         container.innerHTML = "";
 
-        criteria.forEach(c => {
+        criteria.forEach((c, idx) => {
             const card = document.createElement("div");
             card.className = "criteria-edit-card";
             card.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                    <div style="font-weight:600;font-size:13px;color:var(--text-primary);">${c.name}</div>
+                    <div style="font-weight:600;font-size:13px;color:var(--text-primary);">${idx + 1}. ${c.name}</div>
                     <span class="badge badge-kz tabular-nums">Вес ${c.weight}%</span>
                 </div>
                 <div style="font-size:12px;color:var(--text-secondary);line-height:1.45;">${c.description}</div>
                 <div class="tabular-nums" style="font-size:11px;display:flex;gap:10px;margin-top:4px;color:var(--text-muted);font-family:var(--font-mono);">
-                    <span>Шкала: <strong style="color:var(--text-primary);">${c.scale_type} (max ${c.max_points})</strong></span>
-                    <span>N/A: <strong style="color:var(--text-primary);">${c.allow_na ? 'Да' : 'Нет'}</strong></span>
-                    ${c.is_fatal ? '<span style="color:var(--status-fatal-text);font-weight:600;">FATAL FLAG</span>' : ''}
+                    <span>Макс. балл: <strong style="color:var(--text-primary);">${c.max_points}</strong></span>
+                    <span>N/A: <strong style="color:var(--text-primary);">${c.allow_na ? 'Разрешен' : 'Нет'}</strong></span>
+                    ${c.is_fatal ? '<span style="color:var(--status-fatal-text);font-weight:600;">Грубая ошибка</span>' : ''}
                 </div>
                 <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
                     <button class="btn btn-secondary btn-sm" onclick="editCriterion('${c.id}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.description)}', ${c.weight}, '${c.scale_type}', ${c.allow_na}, ${c.is_fatal})">Изменить</button>
@@ -1016,7 +922,7 @@ async function loadCriteria() {
 }
 
 window.openCriterionModal = function() {
-    document.getElementById("crit-modal-title").textContent = "Новый критерий регламента";
+    document.getElementById("crit-modal-title").textContent = "Новый критерий";
     document.getElementById("edit-crit-id").value = "c_new_" + Date.now();
     document.getElementById("edit-crit-name").value = "";
     document.getElementById("edit-crit-desc").value = "";
@@ -1028,7 +934,7 @@ window.openCriterionModal = function() {
 };
 
 window.editCriterion = function(id, encName, encDesc, weight, scale, allowNa, isFatal) {
-    document.getElementById("crit-modal-title").textContent = "Редактирование критерия";
+    document.getElementById("crit-modal-title").textContent = "Настройка критерия";
     document.getElementById("edit-crit-id").value = id;
     document.getElementById("edit-crit-name").value = decodeURIComponent(encName);
     document.getElementById("edit-crit-desc").value = decodeURIComponent(encDesc);
@@ -1079,7 +985,7 @@ async function saveCriterion() {
 }
 
 window.deleteCriterion = async function(id) {
-    if (!confirm("Удалить этот критерий из матрицы регламента?")) return;
+    if (!confirm("Удалить этот критерий?")) return;
     try {
         await fetch(`/api/criteria/${id}`, { method: "DELETE" });
         loadCriteria();
