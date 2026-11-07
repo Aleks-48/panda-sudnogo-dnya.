@@ -142,7 +142,7 @@ node --env-file-if-exists=.env server.mjs
 ## Структура проекта
 
 ```text
-public/                 HTML/CSS/JavaScript и логотипы
+public/                 HTML/CSS/JavaScript интерфейса
 server.mjs              локальный HTTP API и атомарное сохранение
 core.mjs                проверка конфигурации, доказательств и расчёт баллов
 llm.mjs                 адаптер модели, usage, стоимость и ошибки

@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import {seedDemo} from '../../../demo.mjs';
 import {starter,normalizeRecords} from '../../../core.mjs';
 await fs.mkdir('src',{recursive:true});await fs.mkdir('public/assets',{recursive:true});
-for(const f of ['index.html','app.js','style.css','assets/pandas-logo.png','assets/freedom-bank-logo.svg'])await fs.copyFile('../../public/'+f,'public/'+f);
+for(const f of ['index.html','app.js','style.css'])await fs.copyFile('../../public/'+f,'public/'+f);
 let core=await fs.readFile('../../core.mjs','utf8');core=core.replace("import {readFileSync} from 'node:fs';", "import starterData from './checklist.json' with {type:'json'};").replace("import {randomUUID} from 'node:crypto';",'').replace('()=>randomUUID()','()=>crypto.randomUUID()').replace("JSON.parse(readFileSync(new URL('./checklist.official.json',import.meta.url),'utf8'))",'starterData');
 await fs.writeFile('src/core.mjs',core);await fs.copyFile('../../checklist.official.json','src/checklist.json');
 await fs.copyFile('../../demo.mjs','src/demo.mjs');

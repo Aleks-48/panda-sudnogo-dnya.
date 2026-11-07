@@ -75,7 +75,7 @@ const server=http.createServer(async(req,res)=>{try{
  await save();return json(res,200,result);
  }
  if(req.method==='GET'){
- const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css'],'/assets/pandas-logo.png':['public/assets/pandas-logo.png','image/png'],'/assets/freedom-bank-logo.svg':['public/assets/freedom-bank-logo.svg','image/svg+xml'],'/presentation.pptx':['presentation/Pandy_sudnogo_dnya_CQA.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation']};const f=files[url.pathname];if(f){if(url.pathname==='/presentation.pptx')res.setHeader('Content-Disposition','attachment; filename="Pandy_sudnogo_dnya_CQA.pptx"');res.writeHead(200,{'Content-Type':`${f[1]}${f[1].startsWith('text/')?'; charset=utf-8':''}`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
+ const files={'/':['public/index.html','text/html'],'/app.js':['public/app.js','text/javascript'],'/style.css':['public/style.css','text/css'],'/presentation.pptx':['presentation/Pandy_sudnogo_dnya_CQA.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation']};const f=files[url.pathname];if(f){if(url.pathname==='/presentation.pptx')res.setHeader('Content-Disposition','attachment; filename="Pandy_sudnogo_dnya_CQA.pptx"');res.writeHead(200,{'Content-Type':`${f[1]}${f[1].startsWith('text/')?'; charset=utf-8':''}`,'X-Content-Type-Options':'nosniff'});return res.end(await readFile(root+f[0]));}
  }
  json(res,404,{error:'Не найдено'});
  }catch(e){console.error(e.message);json(res,400,{error:e.message});}});
