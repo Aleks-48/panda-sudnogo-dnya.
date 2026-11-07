@@ -72,6 +72,47 @@ function initActionButtons() {
 function initFilters() {
     document.getElementById("filter-lang").addEventListener("change", loadDialogues);
     document.getElementById("filter-channel").addEventListener("change", loadDialogues);
+    const filterStatus = document.getElementById("filter-status");
+    if (filterStatus) filterStatus.addEventListener("change", loadDialogues);
+
+    // Clickable KPI cards
+    const kpiFatal = document.getElementById("kpi-card-fatal");
+    if (kpiFatal) {
+        kpiFatal.addEventListener("click", () => {
+            if (filterStatus) {
+                filterStatus.value = filterStatus.value === "fatal" ? "" : "fatal";
+                loadDialogues();
+            }
+        });
+    }
+
+    const kpiEval = document.getElementById("kpi-card-evaluated");
+    if (kpiEval) {
+        kpiEval.addEventListener("click", () => {
+            if (filterStatus) {
+                filterStatus.value = filterStatus.value === "evaluated" ? "" : "evaluated";
+                loadDialogues();
+            }
+        });
+    }
+
+    const kpiTotal = document.getElementById("kpi-card-total");
+    if (kpiTotal) {
+        kpiTotal.addEventListener("click", () => {
+            document.getElementById("filter-lang").value = "";
+            document.getElementById("filter-channel").value = "";
+            if (filterStatus) filterStatus.value = "";
+            loadDialogues();
+        });
+    }
+
+    const kpiAppeals = document.getElementById("kpi-card-appeals");
+    if (kpiAppeals) {
+        kpiAppeals.addEventListener("click", () => {
+            const appealsTabBtn = document.querySelector('[data-tab="appeals-tab"]');
+            if (appealsTabBtn) appealsTabBtn.click();
+        });
+    }
 }
 
 // Load KPI Stats
@@ -101,10 +142,13 @@ async function loadStats() {
 async function loadDialogues() {
     const lang = document.getElementById("filter-lang").value;
     const channel = document.getElementById("filter-channel").value;
+    const filterStatus = document.getElementById("filter-status");
+    const status = filterStatus ? filterStatus.value : "";
     
     let url = "/api/dialogues?";
     if (lang) url += `language=${encodeURIComponent(lang)}&`;
     if (channel) url += `channel=${encodeURIComponent(channel)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
 
     try {
         const res = await fetch(url);

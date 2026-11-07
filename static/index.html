@@ -59,11 +59,11 @@
             </div>
 
             <div class="kpi-cards-group">
-                <div class="kpi-item kpi-border-green">
+                <div class="kpi-item kpi-border-green" id="kpi-card-total" style="cursor:pointer;" title="Показать все диалоги">
                     <span class="kpi-label">● ВСЕГО ДИАЛОГОВ</span>
                     <span id="kpi-total" class="kpi-value">-</span>
                 </div>
-                <div class="kpi-item kpi-border-blue">
+                <div class="kpi-item kpi-border-blue" id="kpi-card-evaluated" style="cursor:pointer;" title="Показать только оцененные">
                     <span class="kpi-label">● ОЦЕНЕНО</span>
                     <span id="kpi-evaluated" class="kpi-value">-</span>
                 </div>
@@ -71,11 +71,11 @@
                     <span class="kpi-label">● СРЕДНИЙ БАЛЛ</span>
                     <span id="kpi-avg" class="kpi-value highlight-score">-</span>
                 </div>
-                <div class="kpi-item kpi-border-gold">
+                <div class="kpi-item kpi-border-gold" id="kpi-card-fatal" style="cursor:pointer;" title="Показать только диалоги с грубыми ошибками">
                     <span class="kpi-label">● ГРУБЫЕ ОШИБКИ</span>
                     <span id="kpi-fatal" class="kpi-value danger-score">0</span>
                 </div>
-                <div class="kpi-item kpi-border-blue">
+                <div class="kpi-item kpi-border-blue" id="kpi-card-appeals" style="cursor:pointer;" title="Перейти в Центр апелляций">
                     <span class="kpi-label">● АПЕЛЛЯЦИИ</span>
                     <span id="kpi-appeals" class="kpi-value">0</span>
                 </div>
@@ -105,6 +105,12 @@
                                     <option value="">Все каналы связи</option>
                                     <option value="agent chat">Чат поддержки</option>
                                     <option value="voice call">Голосовой звонок</option>
+                                </select>
+                                <select id="filter-status" class="form-select">
+                                    <option value="">Все статусы</option>
+                                    <option value="fatal">⚠️ Только с грубыми ошибками (FATAL)</option>
+                                    <option value="evaluated">✅ Оцененные диалоги</option>
+                                    <option value="pending">⏳ Не оцененные</option>
                                 </select>
                             </div>
                         </div>

@@ -129,7 +129,7 @@ def delete_criterion(cid: str):
     return {"status": "deleted", "id": cid}
 
 @app.get("/api/dialogues")
-def list_dialogues(language: Optional[str] = None, channel: Optional[str] = None):
+def list_dialogues(language: Optional[str] = None, channel: Optional[str] = None, status: Optional[str] = None):
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -147,6 +147,12 @@ def list_dialogues(language: Optional[str] = None, channel: Optional[str] = None
     if channel:
         query += " AND d.channel = ?"
         params.append(channel)
+    if status == "fatal":
+        query += " AND e.has_fatal_flaw = 1"
+    elif status == "evaluated":
+        query += " AND e.total_score IS NOT NULL"
+    elif status == "pending":
+        query += " AND (e.id IS NULL OR e.total_score IS NULL)"
         
     query += " ORDER BY d.conversation_id ASC"
     cursor.execute(query, params)
