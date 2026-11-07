@@ -34,7 +34,31 @@ def organizer_url(guide):
     raise ValueError("В руководстве отсутствует ссылка на набор.")
 
 
+from model_api import assess
+from workspace_store import read_workspace, write_workspace
+
 class Workspace(SimpleHTTPRequestHandler):
+    def do_POST(self):
+        local = f"127.0.0.1:{self.server.server_port}"
+        if (self.headers.get("Host") != local or self.headers.get("Origin") != "http://" + local
+                or self.headers.get_content_type() != "application/json"):
+            return self.json_response(403, {"error": "Откройте локальное приложение."})
+        if self.path not in {"/api/assess", "/api/workspace"}:
+            return self.json_response(404, {"error": "Неизвестный метод."})
+        try:
+            size = int(self.headers.get("Content-Length", 0))
+            if not 0 < size <= (16000000 if self.path == "/api/workspace" else 512000):
+                return self.json_response(413, {"error": "Слишком большой запрос."})
+            data = json.loads(self.rfile.read(size))
+            if self.path == "/api/workspace":
+                status, result = write_workspace(data)
+                return self.json_response(status, result)
+            output = assess(data["record"], data["criteria"])
+        except (KeyError, TypeError, ValueError) as exc:
+            return self.json_response(400, {"error": str(exc)})
+        except RuntimeError as exc:
+            return self.json_response(502, {"error": str(exc)})
+        self.json_response(200, output)
     def json_response(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode()
         self.send_response(status)
@@ -46,6 +70,10 @@ class Workspace(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         target = urlsplit(self.path)
+        if target.path.startswith("/api/") and self.headers.get("Host") != f"127.0.0.1:{self.server.server_port}":
+            return self.json_response(403, {"error": "Недоступный адрес."})
+        if target.path == "/api/workspace":
+            return self.json_response(200, read_workspace())
         if target.path != "/api/dataset":
             return super().do_GET()
         group = parse_qs(target.query).get("group_id", ["DEV"])[0]
@@ -83,3 +111,5 @@ if __name__ == "__main__":
         server.guide = args.guide
         print(f"http://127.0.0.1:{args.port}", flush=True)
         server.serve_forever()
+
+
