@@ -6,11 +6,11 @@ const storageKey='anais.workspace.v1';
 let db, serverVersion=null, writes=Promise.resolve(), syncFailed=false;
 try { db=JSON.parse(localStorage.getItem(storageKey)); } catch {}
 db ||= {records:copy(window.demoRecords), criteria:copy(CQA.defaults), runs:{}, appeals:[]};
-let current=db.records[0].conversation_id, page='analysis', focus=0;
+let current=db.records[0].conversation_id, page='list', focus=0;
 const record=()=>db.records.find(r=>r.conversation_id===current);
 const run=()=>db.runs[current];
 const names={client:'Клиент',operator:'Оператор',system:'Система',bot:'Бот'};
-const tabs={list:'Диалоги',rules:'Чек-лист',appeals:'Апелляции',stats:'Аналитика'};
+const tabs={list:'Очередь',rules:'Чек-лист',appeals:'Апелляции',stats:'Аналитика',bench:'Контрольная выборка'};
 const icons={list:'▤',rules:'☑',appeals:'⚖',stats:'▥'};
 const num=n=>n==null?'—':n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 function save(){
@@ -35,21 +35,17 @@ function closePop(){$('modal').close()}
 function intro(k,title,sub,actions=''){return '<div class="intro"><div><div class="eyebrow">'+k+'</div><h1>'+title+'</h1><p class="muted">'+sub+'</p></div><div class="actions">'+actions+'</div></div>'}
 function stamp(t){return /^\d{4}-/.test(t)?t.slice(11,19):t}
 function render(){
- $('crumb').textContent=page==='analysis'?'Анализ диалога':tabs[page];
- $('nav').innerHTML=Object.entries(tabs).map(([k,v])=>'<button data-page="'+k+'" class="'+((page===k||page==='analysis'&&k==='list')?'active':'')+'"><span>'+icons[k]+'</span> '+v+'</button>').join('');
- $('app').innerHTML=page==='analysis'?analysis():page==='list'?list():page==='rules'?rules():page==='appeals'?appeals():stats();
+ $('nav').innerHTML=Object.entries(tabs).map(([k,v])=>'<button data-page="'+k+'" class="'+((page===k||page==='analysis'&&k==='list')?'active':'')+'">'+v+'</button>').join('');
+ $('app').innerHTML=page==='analysis'?analysis():page==='list'?list():page==='rules'?rules():page==='appeals'?appeals():page==='bench'?benchPage():stats();
 }
 function analysis(){
  const r=record(), a=run(), messages=r.transcript;
- const timeline=['client','operator'].map(role=>'<div class="track"><label>'+names[role]+'</label><div class="bars">'+Array.from({length:96},(_,i)=>{
- const idx=Math.min(messages.length-1,Math.floor(i*messages.length/96)),m=messages[idx],h=m.speaker===role?10+(m.text.charCodeAt(i%m.text.length)||0)%23:3;
- return '<i data-msg="'+idx+'" title="'+esc(stamp(m.timestamp))+'" style="height:'+h+'px"></i>'}).join('')+'</div></div>').join('');
  const transcript=messages.map((m,i)=>'<div class="message '+esc(m.speaker)+(i===focus?' selected':'')+'" id="msg-'+i+'"><div class="meta"><b>'+esc(names[m.speaker]||m.speaker)+'</b>　'+esc(stamp(m.timestamp))+'</div><div class="bubble">'+esc(m.text)+'</div></div>').join('');
  const s=a&&CQA.summarize(a.results,a.criteria);
- const score=a?'<div class="scorebox"><div class="ring" style="--score:'+Number(s.total||0)+'"><strong>'+num(s.total)+'</strong></div><div><b>Итоговая оценка</b><small style="display:block">'+esc(a.model||'Локальные правила')+'</small><p class="muted">из 100 баллов</p><small>'+(s.gross?'Есть грубая ошибка':'Без грубых ошибок')+'</small></div></div>'+a.criteria.map((c,i)=>'<div class="criterion"><button data-criterion="'+i+'"><span>'+esc(c.title)+'</span><b class="status">'+esc(a.results[i].value) +'　›</b></button></div>').join('')+'<details class="section-scores"><summary>Результаты разделов</summary>'+Object.entries(s.sections).map(([k,v])=>'<p>'+esc(k)+' · '+num(v)+' / 100</p>').join('')+'</details>':'<p>Запустите оценку по текущему чек-листу.</p>';
+ const score=a?'<div class="result-head"><strong>'+num(s.total)+'</strong> / 100<p>'+esc(a.model||'Локальные правила')+' · '+(s.gross?'Есть грубая ошибка':'Без грубых ошибок')+'</p></div>'+a.criteria.map((c,i)=>'<div class="criterion"><button data-criterion="'+i+'"><span>'+esc(c.title)+'</span><b class="status">'+esc(a.results[i].value) +'　›</b></button></div>').join('')+'<details class="section-scores"><summary>Результаты разделов</summary>'+Object.entries(s.sections).map(([k,v])=>'<p>'+esc(k)+' · '+num(v)+' / 100</p>').join('')+'</details>':'<p>Запустите оценку по текущему чек-листу.</p>';
  const audioURL=/^https?:\/\//i.test(r.audio_url||'')?r.audio_url:null;
- return intro('КОНТРОЛЬ КАЧЕСТВА　 /　 КАРТОЧКА','Анализ диалога',esc(r.title||(r.channel==='voice call'?'Звонок':'Чат'))+'　·　'+esc(r.conversation_id)+'　·　'+esc(r.language),'<button data-act="evaluate">Локальная оценка</button>'+(publicDemo ? '' : '<button data-act="model">Оценить через OpenAI</button>'))+
- '<section class="timeline panel"><div class="timeline-head"><h2>Карта разговора</h2><span class="muted">'+messages.length+' реплик</span></div>'+timeline+'<div class="ticks"><span>'+esc(stamp(messages[0].timestamp))+'</span><span>'+esc(stamp(messages.at(-1).timestamp))+'</span></div>'+(audioURL?'<audio id="player" controls preload="none" src="'+esc(audioURL)+'"></audio>':'')+'</section><div class="columns"><article class="panel"><div class="panel-head"><h2>Расшифровка</h2><small>'+esc(r.language)+'</small></div><div class="transcript">'+transcript+'</div></article><article class="panel"><div class="panel-head"><h2>Оценка качества</h2></div>'+score+'</article></div>';
+ return intro('ПРОВЕРКА ОБРАЩЕНИЯ','Анализ диалога',esc(r.title||(r.channel==='voice call'?'Звонок':'Чат'))+'　·　'+esc(r.conversation_id)+'　·　'+esc(r.language),'<button data-act="evaluate">Локальная оценка</button>'+(publicDemo ? '' : '<button data-act="model">Оценить через OpenAI</button>'))+
+ (audioURL?'<audio id="player" controls preload="none" src="'+esc(audioURL)+'"></audio>':'')+'<div class="columns"><article class="panel"><div class="panel-head"><h2>Расшифровка</h2><small>'+esc(r.language)+'</small></div><div class="transcript">'+transcript+'</div></article><article class="panel"><div class="panel-head"><h2>Оценка качества</h2></div>'+score+'</article></div>';
 }
 function jump(i){focus=i;closeIfOpen();document.querySelectorAll('.message').forEach(el=>el.classList.remove('selected'));const el=$('msg-'+i);if(el){el.classList.add('selected');el.scrollIntoView({block:'center',behavior:'smooth'})}const player=$('player'), r=record();if(player&&r.transcript[i]){const offset=(Date.parse(r.transcript[i].timestamp)-Date.parse(r.transcript[0].timestamp))/1000;if(Number.isFinite(offset))player.currentTime=Math.max(0,offset)}}
 function closeIfOpen(){if($('modal').open)closePop()}
@@ -57,7 +53,7 @@ function detail(i){const a=run(),c=a.criteria[i],v=a.results[i],m=record().trans
  pop('<div class="eyebrow">КРИТЕРИЙ '+(i+1)+'</div><h2>'+esc(c.title)+'</h2><p>'+esc(c.description)+'</p><b>'+esc(v.value)+'　·　Вес '+c.weight+'　·　Баллы '+num(s.points[c.id])+'</b><p>'+esc(v.reason)+'</p>'+(m?'<blockquote>'+esc(m.text)+'</blockquote><button data-msg="'+v.evidence+'">К реплике '+esc(stamp(m.timestamp))+'</button>':'')+'<hr><p>Исходная оценка　<b>'+esc(a.original[i].value)+'</b></p>'+db.appeals.filter(x=>x.id===current&&x.version===a.version&&x.i===i&&x.decision).map(x=>'<p>Решение　'+esc(x.decision)+' · '+esc(x.reason)+'</p>').join('')+'<form id="appealForm"><label>Причина апелляции<textarea required name="comment"></textarea></label><button>Оспорить оценку</button></form>');
  $('appealForm').onsubmit=e=>{e.preventDefault();const comment=e.target.comment.value.trim();if(!comment)return;db.appeals.push({id:current,version:a.version,i,title:c.title,old:v.value,comment,proof:m?.text||'',time:new Date().toISOString()});save();closePop();openPage('appeals')};
 }
-function list(){return intro('РАБОЧЕЕ ПРОСТРАНСТВО','Диалоги','Выберите разговор для проверки.','<button data-act="batch">Проверить новые</button><button data-act="import">Загрузить диалоги</button>')+'<article class="panel"><div class="panel-head"><h2>Все диалоги</h2><select id="queueStatus" aria-label="Состояние оценки"><option value="">Все статусы</option><option value="new">Ожидают оценки</option><option value="done">Оценены</option><option value="gross">Грубая ошибка</option></select><input id="search" aria-label="Поиск диалога" placeholder="Поиск по ID, языку…"></div>'+db.records.map((r,i)=>'<div class="criterion" data-state="'+(db.runs[r.conversation_id]?(CQA.summarize(db.runs[r.conversation_id].results,db.runs[r.conversation_id].criteria).gross?'done gross':'done'):'new')+'" data-search="'+esc([r.conversation_id,r.title||'',r.language,r.channel].join(' ').toLowerCase())+'"><button data-record="'+i+'"><span>'+esc(r.conversation_id)+'　<small>'+esc(r.language)+' · '+(r.channel==='voice call'?'Звонок':'Чат')+'</small></span><b>'+ (db.runs[r.conversation_id]?num(CQA.summarize(db.runs[r.conversation_id].results,db.runs[r.conversation_id].criteria).total):'Оценить')+'　›</b></button></div>').join('')+'</article>'}
+function list(){return queuePage()}
 function rules(){return intro('МЕТОДИКА','Чек-лист','Изменения применяются при следующей оценке.','<button data-rule="-1">Добавить критерий</button>')+'<article class="panel">'+db.criteria.map((c,i)=>'<div class="criterion"><button data-rule="'+i+'"><span>'+esc(c.title)+'</span><b>Вес '+c.weight+'　›</b></button></div>').join('')+'</article>'}
 function editRule(i){const c=db.criteria[i]||{id:'custom-'+Date.now(),title:'',description:'',section:'',weight:10,type:'binary',allowNA:false,scale:[0,10],keywords:''};const field=(title,key,value,type='text')=>'<label>'+title+'<input name="'+key+'" type="'+type+'" value="'+esc(value)+'"></label>';
  pop('<h2>Настройка критерия</h2><form id="ruleform">'+field('Название','title',c.title)+field('Формулировка','description',c.description)+field('Раздел','section',c.section)+field('Вес','weight',c.weight,'number')+'<label>Тип ответа<select name="type">'+['binary','scale','flag'].map((t,j)=>'<option value="'+t+'" '+(c.type===t?'selected':'')+'>'+['Да / Нет','Шкала','Флаг нарушения'][j]+'</option>').join('')+'</select></label>'+field('Ступени шкалы через запятую','scale',(c.scale||[]).join(', '))+field('Фразы для автоматической проверки через запятую','keywords',c.keywords||'')+'<label><input type="checkbox" name="na" '+(c.allowNA?'checked':'')+'> Разрешить N/A</label><button>Сохранить критерий</button></form>');
@@ -122,6 +118,7 @@ function modelDialog() {
    }catch(err){state.textContent=err.message;button.disabled=false}
  };
 }
+
 
 
 

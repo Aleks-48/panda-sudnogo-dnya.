@@ -35,7 +35,7 @@
     waiting:/подождите|ожидайте|минут.*провер|проверю|понадобится .*минут|please wait|one moment|let me check|take .*minute|күте тұрыңыз|күтіңіз|тексеріп/,
     repeat:/повторите|не понял|не поняла|я спрашивал|еще раз|не ответили|what do you mean|i (?:still )?don.t understand|i asked|түсінбедім|қайта айтыңыз/,
     goodbye:/до свидания|всего доброго|хорошего (?:дня|вечера)|до встречи|доброго дня|goodbye|bye\b|have a (?:nice|good|great) day|сау бол|күніңіз сәтті|сәтті күн/,
-    recap:/итак|подвед|обращение (?:принято|зарегистрировано)|мы с вами|еще вопросы|еще чем|могу .*помочь|будут вопросы|обращайтесь|рад[аы]? помочь|дополнительн.*вопрос|anything else|further (?:help|questions)|happy to help|to recap|we.ve|тағы.*(?:сұрақ|көмек)|көмектесе|хабарласыңыз|қорытынды/,
+    recap:/итак|подвед|обращение (?:принято|зарегистрировано)|мы с вами|еще вопросы|еще чем|могу .*помочь|будут вопросы|если (?:появятся|возникнут|останутся) вопросы|адрес .{0,18}обновл[её]н|обращайтесь|рад[аы]? помочь|дополнительн.*вопрос|anything else|further (?:help|questions)|happy to help|to recap|we.ve|тағы.*(?:сұрақ|көмек)|көмектесе|хабарласыңыз|қорытынды/,
     interrupted:/оборва|прерв|соединение потеряно|клиент (?:покинул|отключился)|disconnected|connection (?:lost|dropped)|client left|байланыс үзіл|клиент шықты/
   };
   const duration = stamp => {
@@ -51,11 +51,12 @@
     const language = String(record.language || '').toUpperCase().replace('KK','KZ');
     const greeting = lex.greet[language] || /здравств|сәлем|hello/;
     const okContact = first && greeting.test(first.text) && lex.intro.test(first.text);
-    const problem = clients.find(m => lex.missing.test(m.text) && !lex.detailed.test(m.text));
+    const requestDetail = ops.find(m=>m.text.includes('?') && /статус|каком этапе|which (?:device|status)|қандай қате/.test(m.text));
+    const problem = clients.find(m => lex.missing.test(m.text) && !lex.detailed.test(m.text)) || (requestDetail && clients.find(m=>m.i<requestDetail.i));
     const advice = by(ops,lex.action);
-    const clarification = problem && ops.find(m => m.i>problem.i && (!advice || m.i<=advice.i) && lex.clarify.test(m.text));
-    const sensitive = by(clients,lex.private), protectedReply = by(ops,lex.protected);
-    const verification = all.find(m => ['operator','system','bot'].includes(m.role) && lex.verified.test(m.text) && (!protectedReply || m.i<protectedReply.i));
+    const clarification = problem && ops.find(m => m.i>problem.i && (!advice || m.i<=advice.i) && (lex.clarify.test(m.text)||m===requestDetail));
+    const sensitive = clients.find(m=>lex.private.test(m.text) && !/^(?:как (?:мне|самостоятельно)|how (?:can|do) i|қалай)/.test(m.text)), protectedReply = by(ops,lex.protected);
+    const verification = all.find(m => ['operator','system','bot'].includes(m.role) && !/не (?:пройд|подтвержд)|not (?:verified|confirmed|complete)|расталма/.test(m.text) && lex.verified.test(m.text) && (!protectedReply || m.i<protectedReply.i));
     const substantive = clients.find(m => m.text.replace(/здравствуйте|добрый день|добрый вечер|привет|спасибо|hello|thanks|good morning|сәлеметсіз бе|рақмет|рахмет|[.!?,\s]/g,'').length>2);
     const repeat = by(clients,lex.repeat);
     const upset = by(clients,lex.upset);
@@ -128,3 +129,4 @@
   }
   globalThis.CQA = {defaults,evaluate,summarize};
 })();
+
