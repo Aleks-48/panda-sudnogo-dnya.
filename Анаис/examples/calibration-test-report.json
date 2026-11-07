@@ -1,0 +1,42 @@
+{
+  "createdAt": "2026-11-07T11:13:40.741Z",
+  "purpose": "Регрессионная проверка на трёх опорных примерах, использованных при настройке инструкции. Не независимая оценка точности.",
+  "cases": [
+    {
+      "conversationId": "p1-ru-001",
+      "success": true,
+      "model": "gpt-6-luna",
+      "score": 92.31,
+      "referenceScore": 92.31,
+      "criteria": 8,
+      "matchingCriteria": 8,
+      "mismatches": [],
+      "elapsedMs": 5882,
+      "costUSD": 0.0003978
+    },
+    {
+      "conversationId": "p1-kz-001",
+      "success": true,
+      "model": "gpt-6-luna",
+      "score": 92.31,
+      "referenceScore": 92.31,
+      "criteria": 8,
+      "matchingCriteria": 8,
+      "mismatches": [],
+      "elapsedMs": 6086,
+      "costUSD": 0.0004348
+    },
+    {
+      "conversationId": "p1-en-001",
+      "success": true,
+      "model": "gpt-6-luna",
+      "score": 92.31,
+      "referenceScore": 92.31,
+      "criteria": 8,
+      "matchingCriteria": 8,
+      "mismatches": [],
+      "elapsedMs": 5846,
+      "costUSD": 0.00041460000000000005
+    }
+  ]
+}

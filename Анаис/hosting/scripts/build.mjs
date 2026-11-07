@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';
+import {build} from 'esbuild';
+const assets={};
+for(const [file,type] of [['index.html','text/html; charset=utf-8'],['app.js','text/javascript; charset=utf-8'],['style.css','text/css; charset=utf-8'],['assets/pandas-logo.png','image/png'],['assets/freedom-bank-logo.svg','image/svg+xml']])assets['/'+file]={type,data:(await fs.readFile('public/'+file)).toString('base64')};
+await fs.writeFile('src/assets.json',JSON.stringify(assets));
+const worker=(await fs.readFile('src/worker-template.mjs','utf8')).replace('/* API_ROUTES */',await fs.readFile('src/routes.inc','utf8'));
+await fs.writeFile('src/worker.mjs',worker);
+await fs.mkdir('dist/server',{recursive:true});await fs.mkdir('dist/.openai',{recursive:true});
+await build({entryPoints:['src/worker.mjs'],outfile:'dist/server/index.js',bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true});
+await fs.copyFile('.openai/hosting.json','dist/.openai/hosting.json');
+console.log({workerBytes:(await fs.stat('dist/server/index.js')).size});
