@@ -1,3 +1,18 @@
+// Keep untrusted transcript, criterion and reviewer text out of HTML/JS contexts.
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function encodeText(value) { return encodeURIComponent(value).replace(/'/g, '%27'); }
+async function checkedFetch(url, options) {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+        let detail;
+        try { detail = (await response.json()).detail; } catch (_) { detail = response.statusText; }
+        throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    }
+    return response;
+}
+let dialogueRequest = 0;
+let listRequest = 0;
+let criteriaById = {};
 // State variables
 let currentDialogueId = null;
 let currentDialogueData = null;
@@ -55,16 +70,25 @@ function initActionButtons() {
         openCriterionModal();
     });
 
-    document.getElementById("btn-save-criterion").addEventListener("click", () => {
-        saveCriterion();
+    document.getElementById("btn-save-criterion").addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        if (button.disabled) return;
+        button.disabled = true;
+        try { await saveCriterion(); } finally { button.disabled = false; }
     });
 
-    document.getElementById("btn-confirm-appeal").addEventListener("click", () => {
-        submitAppeal();
+    document.getElementById("btn-confirm-appeal").addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        if (button.disabled) return;
+        button.disabled = true;
+        try { await submitAppeal(); } finally { button.disabled = false; }
     });
 
-    document.getElementById("btn-save-decision").addEventListener("click", () => {
-        saveSupervisorDecision();
+    document.getElementById("btn-save-decision").addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        if (button.disabled) return;
+        button.disabled = true;
+        try { await saveSupervisorDecision(); } finally { button.disabled = false; }
     });
 }
 
@@ -77,7 +101,7 @@ function initFilters() {
 // Load KPI Stats
 async function loadStats() {
     try {
-        const res = await fetch("/api/stats");
+        const res = await checkedFetch("/api/stats");
         const data = await res.json();
         document.getElementById("kpi-total").textContent = data.total_dialogues;
         document.getElementById("kpi-evaluated").textContent = data.evaluated_count;
@@ -99,17 +123,18 @@ async function loadStats() {
 
 // Load Dialogue List
 async function loadDialogues() {
+    const request = ++listRequest;
     const lang = document.getElementById("filter-lang").value;
     const channel = document.getElementById("filter-channel").value;
     
     let url = "/api/dialogues?";
-    if (lang) url += `language=${encodeURIComponent(lang)}&`;
-    if (channel) url += `channel=${encodeURIComponent(channel)}&`;
+    if (lang) url += `language=${encodeText(lang)}&`;
+    if (channel) url += `channel=${encodeText(channel)}&`;
 
     try {
-        const res = await fetch(url);
+        const res = await checkedFetch(url);
         const dialogues = await res.json();
-        renderDialoguesList(dialogues);
+        if (request === listRequest) renderDialoguesList(dialogues);
     } catch (e) {
         console.error("Failed to load dialogues", e);
     }
@@ -133,7 +158,7 @@ function renderDialoguesList(dialogues) {
             let scoreClass = d.total_score >= 80 ? "score-good" : (d.total_score >= 50 ? "score-mid" : "score-bad");
             if (d.has_fatal_flaw) {
                 scoreClass = "score-bad";
-                scoreHtml = `<span class="diag-score ${scoreClass}">FATAL</span>`;
+                scoreHtml = `<span class="diag-score ${scoreClass}">${Number(d.total_score).toFixed(2)}% · нарушение</span>`;
             } else {
                 scoreHtml = `<span class="diag-score ${scoreClass}">${Number(d.total_score).toFixed(2)}%</span>`;
             }
@@ -141,9 +166,9 @@ function renderDialoguesList(dialogues) {
 
         item.innerHTML = `
             <div>
-                <div class="diag-title">${d.conversation_id}</div>
+                <div class="diag-title">${escapeHtml(d.conversation_id)}</div>
                 <div class="diag-meta">
-                    <span class="badge badge-${d.language.toLowerCase()}">${d.language}</span>
+                    <span class="badge badge-${escapeHtml(d.language.toLowerCase())}">${escapeHtml(d.language)}</span>
                     <span class="badge ${d.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${d.channel === 'agent chat' ? 'Чат' : 'Звонок'}</span>
                 </div>
             </div>
@@ -160,12 +185,14 @@ function renderDialoguesList(dialogues) {
 
 // Select and Load Single Dialogue
 async function selectDialogue(cid) {
+    const request = ++dialogueRequest;
     currentDialogueId = cid;
     loadDialogues(); // Update active highlight
 
     try {
-        const res = await fetch(`/api/dialogues/${cid}`);
+        const res = await checkedFetch(`/api/dialogues/${encodeText(cid)}`);
         const data = await res.json();
+        if (request !== dialogueRequest) return;
         currentDialogueData = data.dialogue;
         currentEvaluationData = data.evaluation;
 
@@ -182,8 +209,8 @@ function renderDialogueDetails(dialogue) {
 
     const badgesContainer = document.getElementById("current-dialogue-badges");
     badgesContainer.innerHTML = `
-        <span class="badge badge-${dialogue.language.toLowerCase()}">${dialogue.language}</span>
-        <span class="badge ${dialogue.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${dialogue.channel}</span>
+        <span class="badge badge-${escapeHtml(dialogue.language.toLowerCase())}">${escapeHtml(dialogue.language)}</span>
+        <span class="badge ${dialogue.channel === 'agent chat' ? 'badge-chat' : 'badge-call'}">${escapeHtml(dialogue.channel)}</span>
     `;
 
     // Audio player handling
@@ -203,7 +230,7 @@ function renderDialogueDetails(dialogue) {
 
     dialogue.transcript.forEach((msg, idx) => {
         const row = document.createElement("div");
-        row.className = `msg-row msg-${msg.speaker}`;
+        row.className = `msg-row msg-${escapeHtml(msg.speaker)}`;
         row.id = `msg-line-${idx}`;
         row.setAttribute("data-ts", msg.timestamp);
         row.setAttribute("data-text", msg.text);
@@ -215,10 +242,10 @@ function renderDialogueDetails(dialogue) {
 
         row.innerHTML = `
             <div class="msg-header">
-                <span class="speaker-${msg.speaker}">${speakerName}</span>
-                <span class="msg-time">${msg.timestamp}</span>
+                <span class="speaker-${escapeHtml(msg.speaker)}">${speakerName}</span>
+                <span class="msg-time">${escapeHtml(msg.timestamp)}</span>
             </div>
-            <div class="msg-text">${msg.text}</div>
+            <div class="msg-text">${escapeHtml(msg.text)}</div>
         `;
         transcriptBody.appendChild(row);
     });
@@ -258,7 +285,7 @@ function renderScorecard(evalData) {
 
     evalData.criteria_results.forEach(crit => {
         const card = document.createElement("div");
-        card.className = `crit-card ${crit.is_fatal && crit.score === 0 ? 'fatal-active' : ''} ${crit.is_na ? 'na-active' : ''}`;
+        card.className = `crit-card ${crit.is_fatal && crit.score === 1 ? 'fatal-active' : ''} ${crit.is_na ? 'na-active' : ''}`;
 
         let scoreBadgeClass = crit.score === crit.max_points ? "score-good" : (crit.score > 0 ? "score-mid" : "score-bad");
         let scoreText = crit.is_fatal ? (crit.score === 1 ? "Да · нарушение" : "Нет") : `${crit.score} / ${crit.max_points}`;
@@ -280,9 +307,9 @@ function renderScorecard(evalData) {
         let quoteBtnHtml = "";
         if (crit.quote) {
             quoteBtnHtml = `
-                <button class="crit-quote-btn" onclick="scrollToQuote('${encodeURIComponent(crit.quote)}', '${crit.timestamp}')">
+                <button class="crit-quote-btn" onclick="scrollToQuote('${encodeText(crit.quote)}', '${encodeText(crit.timestamp || '')}')">
                     <span>🎯</span>
-                    <span><strong>Цитата:</strong> "${crit.quote}" ${crit.timestamp ? `(${crit.timestamp})` : ''}</span>
+                    <span><strong>Цитата:</strong> "${escapeHtml(crit.quote)}" ${crit.timestamp ? `(${escapeHtml(crit.timestamp)})` : ''}</span>
                 </button>
             `;
         }
@@ -290,15 +317,15 @@ function renderScorecard(evalData) {
         card.innerHTML = `
             <div class="crit-header">
                 <div>
-                    <div class="crit-name">${crit.name}</div>
+                    <div class="crit-name">${escapeHtml(crit.name)}</div>
                     <div class="crit-weight-tag">${weightText}</div>
                 </div>
                 <span class="crit-score-badge ${scoreBadgeClass}">${scoreText}</span>
             </div>
-            <div class="crit-explanation">${crit.is_na ? `<em>Причина N/A: ${crit.na_reason}</em>` : crit.explanation}</div>
+            <div class="crit-explanation">${crit.is_na ? `<em>Причина N/A: ${escapeHtml(crit.na_reason)}</em>` : crit.explanation}</div>
             ${quoteBtnHtml}
             <div class="crit-actions">
-                <button class="btn-appeal" onclick="openAppealModal('${crit.criterion_id}', '${encodeURIComponent(crit.name)}')">⚖️ Оспорить критерий</button>
+                <button class="btn-appeal" onclick="openAppealModal('${encodeText(crit.criterion_id)}', '${encodeText(crit.name)}')">⚖️ Оспорить критерий</button>
             </div>
         `;
 
@@ -308,6 +335,7 @@ function renderScorecard(evalData) {
 
 // Scroll and Highlight Evidence in Transcript
 window.scrollToQuote = function(encodedQuote, timestamp) {
+    timestamp = decodeURIComponent(timestamp || "");
     const quote = decodeURIComponent(encodedQuote).toLowerCase();
     const rows = document.querySelectorAll(".msg-row");
     let targetRow = null;
@@ -317,13 +345,14 @@ window.scrollToQuote = function(encodedQuote, timestamp) {
         const text = (r.getAttribute("data-text") || "").toLowerCase();
         const ts = r.getAttribute("data-ts") || "";
 
-        if (timestamp && ts === timestamp) {
+        if (timestamp && ts === timestamp && text.includes(quote)) {
             targetRow = r;
-        } else if (!targetRow && (text.includes(quote) || quote.includes(text))) {
+        } else if (!targetRow && (text.includes(quote) || (text && quote.includes(text)))) {
             targetRow = r;
         }
     });
 
+    if (!targetRow) alert("Цитата не найдена в транскрипте. Требуется проверка доказательства.");
     if (targetRow) {
         targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         targetRow.classList.add("msg-highlight");
@@ -340,9 +369,9 @@ async function runEvaluation(cid) {
     btn.textContent = "⏳ Оценка...";
 
     try {
-        const res = await fetch(`/api/evaluate/${cid}`, { method: "POST" });
+        const res = await checkedFetch(`/api/evaluate/${encodeText(cid)}`, { method: "POST" });
         const result = await res.json();
-        await selectDialogue(cid);
+        if (currentDialogueId === cid) await selectDialogue(cid);
         loadStats();
     } catch (e) {
         alert("Ошибка оценки диалога: " + e);
@@ -359,7 +388,7 @@ async function runBatchEvaluation() {
     btn.textContent = "⏳ Пакетная обработка...";
 
     try {
-        const res = await fetch("/api/evaluate_all", { method: "POST" });
+        const res = await checkedFetch("/api/evaluate_all", { method: "POST" });
         const data = await res.json();
         alert(`Успешно оценено диалогов: ${data.evaluated_count}`);
         loadStats();
@@ -379,7 +408,7 @@ async function importDevData() {
     if (!url) return;
 
     try {
-        const res = await fetch("/api/fetch_organizers_data", {
+        const res = await checkedFetch("/api/fetch_organizers_data", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ api_url: url, group_id: "DEV" })
@@ -404,7 +433,7 @@ window.openAppealModal = function(criterionId, encodedName) {
         alert("Сначала оцените диалог!");
         return;
     }
-    activeAppealCriterion = criterionId;
+    activeAppealCriterion = decodeURIComponent(criterionId);
     document.getElementById("appeal-criterion-name").textContent = `Критерий: ${decodeURIComponent(encodedName)}`;
     document.getElementById("appeal-comment").value = "";
     document.getElementById("appeal-modal").style.display = "flex";
@@ -418,7 +447,7 @@ async function submitAppeal() {
     }
 
     try {
-        const res = await fetch("/api/appeals", {
+        const res = await checkedFetch("/api/appeals", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
@@ -440,7 +469,7 @@ async function submitAppeal() {
 
 async function loadAppeals() {
     try {
-        const res = await fetch("/api/appeals");
+        const res = await checkedFetch("/api/appeals");
         const appeals = await res.json();
         const tbody = document.getElementById("appeals-table-body");
         tbody.innerHTML = "";
@@ -453,21 +482,21 @@ async function loadAppeals() {
         appeals.forEach(a => {
             const tr = document.createElement("tr");
             let statusBadge = `<span class="badge" style="background:#fff4ce;color:#797673;">На рассмотрении</span>`;
-            let actionHtml = `<button class="btn btn-primary" onclick="openDecisionModal('${a.id}', '${a.conversation_id}', '${encodeURIComponent(a.criterion_name || a.criterion_id)}', '${encodeURIComponent(a.operator_comment)}', ${a.original_score})">Рассмотреть</button>`;
+            let actionHtml = `<button class="btn btn-primary" onclick="openDecisionModal('${encodeText(a.id)}', '${encodeText(a.conversation_id)}', '${encodeText(a.criterion_name || a.criterion_id)}', '${encodeText(a.operator_comment)}', ${a.original_score})">Рассмотреть</button>`;
 
             if (a.status === "accepted") {
                 statusBadge = `<span class="badge" style="background:#dff6dd;color:#107c10;">Удовлетворена (+${a.new_score}б)</span>`;
-                actionHtml = `<span style="font-size:11px;color:#605e5c;">${a.supervisor_comment || 'Решено'}</span>`;
+                actionHtml = `<span style="font-size:11px;color:#605e5c;">${escapeHtml(a.supervisor_comment || 'Решено')}</span>`;
             } else if (a.status === "rejected") {
                 statusBadge = `<span class="badge" style="background:#fdf3f2;color:#a80000;">Отклонена</span>`;
-                actionHtml = `<span style="font-size:11px;color:#605e5c;">${a.supervisor_comment || 'Решено'}</span>`;
+                actionHtml = `<span style="font-size:11px;color:#605e5c;">${escapeHtml(a.supervisor_comment || 'Решено')}</span>`;
             }
 
             tr.innerHTML = `
-                <td><strong>${a.conversation_id}</strong></td>
-                <td>${a.criterion_name || a.criterion_id}</td>
+                <td><strong>${escapeHtml(a.conversation_id)}</strong></td>
+                <td>${escapeHtml(a.criterion_name || a.criterion_id)}</td>
                 <td>${a.original_score}</td>
-                <td><em>"${a.operator_comment}"</em></td>
+                <td><em>"${escapeHtml(a.operator_comment)}"</em></td>
                 <td>${statusBadge}</td>
                 <td>${actionHtml}</td>
             `;
@@ -480,12 +509,14 @@ async function loadAppeals() {
 
 let activeReviewAppealId = null;
 window.openDecisionModal = function(appealId, convId, encCritName, encComment, origScore) {
-    activeReviewAppealId = appealId;
+    activeReviewAppealId = decodeURIComponent(appealId);
+    convId = decodeURIComponent(convId);
+    document.getElementById("review-action").value = "accepted";
     document.getElementById("review-conv-id").textContent = convId;
     document.getElementById("review-crit-name").textContent = decodeURIComponent(encCritName);
     document.getElementById("review-op-comment").textContent = decodeURIComponent(encComment);
-    document.getElementById("review-new-score").value = (origScore === 0 ? 1.0 : origScore + 1.0);
-    document.getElementById("review-comment").value = "Обоснование оператора принято, оценка пересмотрена в пользу сотрудника.";
+    document.getElementById("review-new-score").value = (origScore ?? 0);
+    document.getElementById("review-comment").value = "";
     document.getElementById("decision-modal").style.display = "flex";
 };
 
@@ -494,8 +525,9 @@ async function saveSupervisorDecision() {
     const comment = document.getElementById("review-comment").value.trim();
     const newScore = action === "accepted" ? parseFloat(document.getElementById("review-new-score").value) : null;
 
+    if (!comment || (action === "accepted" && !Number.isFinite(newScore))) { alert("Укажите обоснование и корректный балл"); return; }
     try {
-        const res = await fetch(`/api/appeals/${activeReviewAppealId}/decision`, {
+        const res = await checkedFetch(`/api/appeals/${activeReviewAppealId}/decision`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
@@ -520,8 +552,9 @@ async function saveSupervisorDecision() {
 
 async function loadCriteria() {
     try {
-        const res = await fetch("/api/criteria");
+        const res = await checkedFetch("/api/criteria");
         const criteria = await res.json();
+        criteriaById = Object.fromEntries(criteria.map(c => [c.id, c]));
         const container = document.getElementById("criteria-editor-list");
         container.innerHTML = "";
 
@@ -530,18 +563,18 @@ async function loadCriteria() {
             card.className = "criteria-edit-card";
             card.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div style="font-weight:700;font-size:14px;color:var(--fb-green);">${c.name}</div>
+                    <div style="font-weight:700;font-size:14px;color:var(--fb-green);">${escapeHtml(c.name)}</div>
                     <span class="badge badge-ru">${c.weight}%</span>
                 </div>
-                <div style="font-size:12px;color:#605e5c;">${c.description}</div>
+                <div style="font-size:12px;color:#605e5c;">${escapeHtml(c.description)}</div>
                 <div style="font-size:11px;display:flex;gap:8px;margin-top:4px;">
                     <span>Шкала: <strong>${c.scale_type} (макс ${c.max_points})</strong></span>
                     <span>N/A: <strong>${c.allow_na ? 'Да' : 'Нет'}</strong></span>
                     ${c.is_fatal ? '<span style="color:var(--danger);font-weight:700;">Критическая ошибка</span>' : ''}
                 </div>
                 <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
-                    <button class="btn btn-secondary" onclick="editCriterion('${c.id}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.description)}', ${c.weight}, '${c.scale_type}', ${c.allow_na}, ${c.is_fatal})">Редактировать</button>
-                    <button class="btn btn-secondary" style="color:var(--danger);" onclick="deleteCriterion('${c.id}')">Удалить</button>
+                    <button class="btn btn-secondary" onclick="editCriterion('${encodeText(c.id)}', '${encodeText(c.name)}', '${encodeText(c.description)}', ${c.weight}, '${c.scale_type}', ${c.allow_na}, ${c.is_fatal})">Редактировать</button>
+                    <button class="btn btn-secondary" style="color:var(--danger);" onclick="deleteCriterion('${encodeText(c.id)}')">Удалить</button>
                 </div>
             `;
             container.appendChild(card);
@@ -564,6 +597,7 @@ window.openCriterionModal = function() {
 };
 
 window.editCriterion = function(id, encName, encDesc, weight, scale, allowNa, isFatal) {
+    id = decodeURIComponent(id);
     document.getElementById("crit-modal-title").textContent = "Редактирование критерия";
     document.getElementById("edit-crit-id").value = id;
     document.getElementById("edit-crit-name").value = decodeURIComponent(encName);
@@ -584,13 +618,14 @@ async function saveCriterion() {
     const allowNa = document.getElementById("edit-crit-na").checked;
     const isFatal = document.getElementById("edit-crit-fatal").checked;
 
+    if (!Number.isFinite(weight) || weight < 0) { alert("Вес должен быть неотрицательным числом"); return; }
     if (!name) {
         alert("Укажите название критерия!");
         return;
     }
 
     try {
-        const res = await fetch("/api/criteria", {
+        const res = await checkedFetch("/api/criteria", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
@@ -600,9 +635,11 @@ async function saveCriterion() {
                 weight: weight,
                 scale_type: scale,
                 max_points: scale === "binary" ? 1 : Number(scale.split("_")[1]),
+                allowed_scores: criteriaById[id]?.scale_type === scale ? criteriaById[id].allowed_scores : null,
+                fatal_on_score: criteriaById[id]?.fatal_on_score ?? 1,
                 allow_na: allowNa,
                 is_fatal: isFatal,
-                section: "Пользовательские критерии"
+                section: criteriaById[id]?.section || "Пользовательские критерии"
             })
         });
         const result = await res.json();
@@ -616,9 +653,10 @@ async function saveCriterion() {
 }
 
 window.deleteCriterion = async function(id) {
+    id = decodeURIComponent(id);
     if (!confirm("Удалить этот критерий из чек-листа?")) return;
     try {
-        await fetch(`/api/criteria/${id}`, { method: "DELETE" });
+        await checkedFetch(`/api/criteria/${encodeText(id)}`, { method: "DELETE" });
         loadCriteria();
     } catch (e) {
         alert("Ошибка удаления критерия: " + e);
@@ -629,3 +667,4 @@ window.deleteCriterion = async function(id) {
 window.closeModal = function(modalId) {
     document.getElementById(modalId).style.display = "none";
 };
+

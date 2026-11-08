@@ -489,6 +489,10 @@ def fetch_organizers_data(req: FetchDevRequest):
     except Exception as e:
         return {"status": "error", "message": "Не удалось импортировать данные. Проверьте адрес, доступ и формат ответа."}
 
+# Local import is isolated from evaluator/provider integration.
+from local_import import router as local_import_router
+app.include_router(local_import_router)
+
 # Serve frontend static files
 app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
 
@@ -503,3 +507,6 @@ def serve_presentation():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+
+
+

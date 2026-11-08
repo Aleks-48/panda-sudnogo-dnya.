@@ -44,6 +44,7 @@
                 <span class="pres-meta-tag">FREEDOM FINTECH • DYNAMICS 365</span>
                 <a href="/presentation" target="_blank" class="btn btn-secondary" style="text-decoration:none;">📊 Презентация</a>
                 <button id="btn-batch-eval" class="btn btn-secondary">⚡ Оценить все</button>
+                <button id="btn-import-json" class="btn btn-secondary">Импорт JSON</button><input id="local-json-file" type="file" accept=".json,application/json" hidden>
                 <button id="btn-import-dev" class="btn btn-primary">📥 Загрузить DEV API</button>
             </div>
         </header>
@@ -381,7 +382,7 @@
                 <div class="form-row">
                     <div class="form-group half">
                         <label>Вес (% в общем чек-листе):</label>
-                        <input type="number" id="edit-crit-weight" class="form-input" min="1" max="100" value="10">
+                        <input type="number" id="edit-crit-weight" class="form-input" min="0" max="100" value="10">
                     </div>
                     <div class="form-group half">
                         <label>Тип шкалы:</label>
@@ -411,5 +412,7 @@
     </div>
 
     <script src="/static/app.js"></script>
+    <script src="/static/local-workflow.js"></script>
 </body>
 </html>
+
