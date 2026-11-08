@@ -20,6 +20,8 @@ dev_data.json
 .env.*
 !.env.example
 dev_data.json
+prod_data.json
+swap_data.json
 data/private/
 *.mp3
 *.wav

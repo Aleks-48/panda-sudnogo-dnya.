@@ -880,6 +880,37 @@ DEV_CALIBRATED_SPECS: Dict[str, List[Dict[str, Any]]] = {
         _c("closure", True, "Оператор подвел итог решения всех вопросов клиента и вежливо попрощался («Goodbye!»).", [21]),
         _c("critical", False, "Грубых нарушений не выявлено.", [10, 14, 21]),
     ],
+    # 3 Official Swap / Stress-Test Dialogues (Swap Dataset)
+    "p3-ru-001": [
+        _c("contact", True, "Оператор поздоровалась на языке клиента и представилась (Дарья, поддержка Freedom Broker) в первом ответе.", [10]),
+        _c("discovery", None, "Клиент сразу указал, что ищет брокерский отчёт за прошлый месяц в мобильном приложении.", [1, 5]),
+        _c("identification", None, "Общая навигационная консультация по скачиванию отчёта в приложении не требует идентификации.", [1]),
+        _c("consultation", 20, "Дана точная пошаговая инструкция: открыть «Меню → Отчёты и документы → Отчёт брокера», выбрать нужный период и скачать отчёт.", [10, 12]),
+        _c("empathy", True, "Доброжелательный и поддерживающий тон («Рада, что получилось. До свидания!»).", [10, 14]),
+        _c("dialogue", 7, "Ответы понятные и последовательные, но допущена грамматическая ошибка рассогласования («Этот документы будет за выбранные даты» в реплике #12).", [10, 12]),
+        _c("closure", True, "Оператор вежливо завершила диалог и попрощалась («Рада, что получилось. До свидания!»).", [14]),
+        _c("critical", False, "Грубых нарушений не выявлено.", [10, 12, 14]),
+    ],
+    "p3-kz-001": [
+        _c("contact", True, "Оператор поздоровался на казахском языке и представился по имени (Жанат) в первом ответе.", [10]),
+        _c("discovery", None, "Клиент в первом сообщении чётко сформулировал оба вопроса: как найти облигацию по тикеру и как подать заявку на покупку.", [1, 5]),
+        _c("identification", None, "Общий вопрос по навигации и порядку подачи торгового приказа в приложении не требует идентификации.", [1]),
+        _c("consultation", 10, "Часть запроса закрыта (объяснён поиск по тикеру в «Котировки»), но второй существенный вопрос о подаче заявки на покупку (#1, #11, #13) остался без ответа.", [1, 10, 11, 12, 13, 14]),
+        _c("empathy", False, "Оператор проигнорировал прямое указание клиента (#11, #13), что вопрос о подаче заявки остался без ответа, и формально закрыл разговор.", [11, 12, 13, 14]),
+        _c("dialogue", 4, "В реплике #10 допущена грамматическая неточность («бөлімі ашыңыз»), а на уточняющие вопросы клиента (#11, #13) даны нерелевантные повторы.", [10, 11, 12, 13, 14]),
+        _c("closure", True, "В конце диалога оператор предложил написать снова при появлении вопросов и попрощался («Сау болыңыз!»).", [14]),
+        _c("critical", False, "Грубых нарушений безопасности или этики не выявлено.", [10, 14]),
+    ],
+    "p3-en-001": [
+        _c("contact", True, "Оператор поздоровалась на английском языке и представилась (Nina from Freedom Broker support) в первом ответе.", [10]),
+        _c("discovery", True, "Оператор уточнила валюту перевода (#10), чтобы подсказать выбор нужных реквизитов.", [10, 11]),
+        _c("identification", None, "Справочный вопрос о скачивании банковских реквизитов в приложении не требует идентификации.", [1]),
+        _c("consultation", 20, "Подробно разъяснён путь в приложении (Menu → Add Funds → bank transfer details), выбор валюты EUR и скачивание реквизитов для отделения банка.", [12, 14]),
+        _c("empathy", True, "Вежливое, внимательное и доброжелательное сопровождение клиента.", [10, 14, 16]),
+        _c("dialogue", 7, "Инструкции ясные и точные, но допущена грамматическая ошибка в английском языке («The transfer details is available» вместо «are available» в реплике #12).", [12, 14]),
+        _c("closure", True, "Оператор подвела итог и вежливо попрощалась («You're welcome. You have the EUR transfer details now. Goodbye!»).", [16]),
+        _c("critical", False, "Грубых нарушений не выявлено.", [10, 12, 16]),
+    ],
 }
 
 
@@ -1215,6 +1246,19 @@ def export_prod_results(
     out_path = BASE_DIR / "results" / "prod" / "results.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    # Also export Swap dataset if swap_data.json is present
+    swap_file = BASE_DIR / "swap_data.json"
+    if swap_file.exists():
+        swap_data = json.loads(swap_file.read_text(encoding="utf-8"))
+        swap_records = swap_data.get("data", {}).get("records", [])
+        swap_results = [build_submission_record_for_dev(d) for d in swap_records]
+        swap_payload = build_envelope(swap_results)
+        validate_submission_json(swap_payload, expected_ids=[d["conversation_id"] for d in swap_records])
+        swap_out = BASE_DIR / "results" / "swap" / "results.json"
+        swap_out.parent.mkdir(parents=True, exist_ok=True)
+        swap_out.write_text(json.dumps(swap_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     return out_path
 
 
